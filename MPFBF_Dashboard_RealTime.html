@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MPFBF Performance Report Card - Real-Time</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f5f0; --surface: #ffffff; --surface2: #f7f7f3;
+    --text: #1a1a18; --text2: #5f5e5a; --text3: #888780;
+    --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+    --blue: #185FA5; --blue-bg: #E6F1FB; --blue-light: #378ADD;
+    --green: #3B6D11; --green-bg: #EAF3DE; --green-light: #639922;
+    --amber: #854F0B; --amber-bg: #FAEEDA; --amber-light: #BA7517;
+    --red: #A32D2D; --red-bg: #FCEBEB; --red-light: #E24B4A;
+    --teal: #0F6E56; --teal-bg: #E1F5EE; --teal-light: #1D9E75;
+    --purple: #3C3489; --purple-bg: #EEEDFE; --purple-light: #7F77DD;
+    --radius: 10px; --radius-sm: 6px;
+    --font: 'Segoe UI', Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18; --surface: #2c2c2a; --surface2: #444441;
+      --text: #f0ede6; --text2: #b4b2a9; --text3: #888780;
+      --border: rgba(255,255,255,0.12); --border2: rgba(255,255,255,0.22);
+      --blue-bg: #0c447c; --green-bg: #27500a; --amber-bg: #633806;
+      --red-bg: #791f1f; --teal-bg: #085041; --purple-bg: #3c3489;
+    }
+  }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
+  .app { display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar { width: 220px; min-width: 220px; background: var(--surface); border-right: 0.5px solid var(--border2); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+  .sidebar-logo { padding: 20px 16px 12px; border-bottom: 0.5px solid var(--border); }
+  .sidebar-logo h1 { font-size: 15px; font-weight: 600; color: var(--blue); letter-spacing: 0.5px; }
+  .sidebar-logo p { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .nav-section { padding: 12px 0 4px; }
+  .nav-label { font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; padding: 0 16px 6px; }
+  .nav-item { display: flex; align-items: center; gap: 8px; padding: 8px 16px; cursor: pointer; font-size: 13px; color: var(--text2); border-radius: 0; transition: background 0.15s; }
+  .nav-item:hover { background: var(--surface2); }
+  .nav-item.active { background: var(--blue-bg); color: var(--blue); font-weight: 500; border-left: 2.5px solid var(--blue); }
+  .nav-icon { width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; }
+
+  /* Main */
+  .main { flex: 1; overflow-y: auto; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; background: var(--surface); border-bottom: 0.5px solid var(--border); position: sticky; top: 0; z-index: 10; }
+  .topbar-title { font-size: 16px; font-weight: 600; color: var(--text); }
+  .topbar-subtitle { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+  .tab-btns { display: flex; gap: 6px; }
+  .tab-btn { padding: 6px 14px; border-radius: var(--radius-sm); border: 0.5px solid var(--border2); background: transparent; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--text2); transition: all 0.15s; }
+  .tab-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  
+  /* Real-time Status */
+  .realtime-status { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--surface2); border-radius: var(--radius-sm); font-size: 11px; color: var(--text2); }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  .status-dot.offline { background: var(--red); animation: none; }
+  .status-dot.loading { background: var(--amber); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  
+  .update-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; background: var(--green-bg); color: var(--green); font-size: 10px; font-weight: 600; animation: slideIn 0.3s ease; }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+
+  /* Sections */
+  .section { display: none; padding: 20px 24px; }
+  .section.active { display: block; }
+
+  /* KPI Grid */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .kpi-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px 16px; transition: all 0.3s ease; }
+  .kpi-card.updated { animation: highlightUpdate 0.6s ease; }
+  @keyframes highlightUpdate { 0% { background: var(--green-bg); } 100% { background: var(--surface); } }
+  .kpi-label { font-size: 11px; color: var(--text3); font-weight: 500; letter-spacing: 0.3px; margin-bottom: 6px; }
+  .kpi-value { font-size: 26px; font-weight: 600; color: var(--text); line-height: 1; }
+  .kpi-unit { font-size: 12px; color: var(--text3); font-weight: 400; }
+  .kpi-trend { font-size: 11px; margin-top: 6px; display: flex; align-items: center; gap: 3px; }
+  .trend-up { color: var(--green); } .trend-down { color: var(--red); } .trend-neutral { color: var(--text3); }
+
+  /* Charts */
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .chart-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 16px; position: relative; }
+  .chart-card.full { grid-column: 1 / -1; }
+  .chart-card.updating::after { content: ''; position: absolute; top: 16px; right: 16px; width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: pulse 1s infinite; }
+  .chart-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .chart-subtitle { font-size: 11px; color: var(--text3); margin-bottom: 14px; }
+  .chart-wrap { position: relative; width: 100%; }
+
+  /* Status badges */
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+  .badge-green { background: var(--green-bg); color: var(--green); }
+  .badge-red { background: var(--red-bg); color: var(--red); }
+  .badge-amber { background: var(--amber-bg); color: var(--amber); }
+  .badge-blue { background: var(--blue-bg); color: var(--blue); }
+
+  /* Data Table */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { background: var(--surface2); color: var(--text3); font-weight: 600; font-size: 11px; text-align: left; padding: 8px 10px; border-bottom: 0.5px solid var(--border2); letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap; }
+  td { padding: 8px 10px; border-bottom: 0.5px solid var(--border); color: var(--text); white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+  tr.row-updated td { animation: rowHighlight 0.6s ease; }
+  @keyframes rowHighlight { 0% { background: var(--green-bg); } 100% { background: transparent; } }
+  .td-metric { color: var(--text2); font-size: 12px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Data Entry */
+  .entry-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .entry-title { font-size: 15px; font-weight: 600; }
+  .entry-form { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .form-section-title { background: var(--surface2); padding: 10px 16px; font-size: 12px; font-weight: 600; color: var(--text2); border-bottom: 0.5px solid var(--border); text-transform: uppercase; letter-spacing: 0.5px; }
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0; }
+  .form-field { padding: 12px 16px; border-bottom: 0.5px solid var(--border); border-right: 0.5px solid var(--border); }
+  .form-field:nth-child(even) { border-right: none; }
+  .form-label { font-size: 11px; color: var(--text3); margin-bottom: 5px; display: block; }
+  .form-input { width: 100%; padding: 6px 8px; border: 0.5px solid var(--border2); border-radius: var(--radius-sm); font-size: 13px; background: var(--bg); color: var(--text); font-family: var(--font); }
+  .form-input:focus { outline: none; border-color: var(--blue-light); box-shadow: 0 0 0 2px rgba(55,138,221,0.15); }
+  .form-actions { padding: 14px 16px; display: flex; gap: 10px; align-items: center; }
+  .btn-primary { padding: 8px 20px; background: var(--blue); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-secondary { padding: 8px 16px; background: transparent; color: var(--text2); border: 0.5px solid var(--border2); border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; }
+  .btn-secondary:hover { background: var(--surface2); }
+  .save-msg { font-size: 12px; color: var(--green); display: none; }
+
+  /* Alerts section */
+  .alerts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .alert-card { border-radius: var(--radius); padding: 14px 16px; border: 0.5px solid; transition: all 0.3s ease; }
+  .alert-card.danger { background: var(--red-bg); border-color: var(--red-light); }
+  .alert-card.warning { background: var(--amber-bg); border-color: var(--amber-light); }
+  .alert-card.success { background: var(--green-bg); border-color: var(--green-light); }
+  .alert-card.info { background: var(--blue-bg); border-color: var(--blue-light); }
+  .alert-card.updated { animation: alertUpdate 0.6s ease; }
+  @keyframes alertUpdate { 0% { transform: scale(1.02); } 100% { transform: scale(1); } }
+  .alert-title { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+  .alert-card.danger .alert-title { color: var(--red); }
+  .alert-card.warning .alert-title { color: var(--amber); }
+  .alert-card.success .alert-title { color: var(--green); }
+  .alert-card.info .alert-title { color: var(--blue); }
+  .alert-value { font-size: 28px; font-weight: 700; line-height: 1; }
+  .alert-card.danger .alert-value { color: var(--red); }
+  .alert-card.warning .alert-value { color: var(--amber); }
+  .alert-card.success .alert-value { color: var(--green); }
+  .alert-card.info .alert-value { color: var(--blue); }
+  .alert-desc { font-size: 11px; margin-top: 4px; color: var(--text2); }
+
+  .section-heading { font-size: 13px; font-weight: 600; color: var(--text2); margin: 0 0 10px; display: flex; align-items: center; gap: 6px; }
+  .divider { height: 0.5px; background: var(--border); margin: 20px 0; }
+
+  @media (max-width: 700px) {
+    .sidebar { display: none; }
+    .chart-grid { grid-template-columns: 1fr; }
+    .alerts-grid { grid-template-columns: 1fr; }
+    .topbar-right { flex-direction: column; gap: 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <h1>MPFBF</h1>
+    <p>Performance Report Card</p>
+  </div>
+  <nav>
+    <div class="nav-section">
+      <div class="nav-label">Views</div>
+      <div class="nav-item active" onclick="switchView('dashboard', this)">
+        <span class="nav-icon">📊</span> Dashboard
+      </div>
+      <div class="nav-item" onclick="switchView('operations', this)">
+        <span class="nav-icon">🚚</span> Operations
+      </div>
+      <div class="nav-item" onclick="switchView('pendency', this)">
+        <span class="nav-icon">⏳</span> Pendency & SLA
+      </div>
+      <div class="nav-item" onclick="switchView('alerts', this)">
+        <span class="nav-icon">🔔</span> Alerts
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Manage</div>
+      <div class="nav-item" onclick="switchView('data-entry', this)">
+        <span class="nav-icon">✏️</span> Enter Data
+      </div>
+      <div class="nav-item" onclick="switchView('raw-data', this)">
+        <span class="nav-icon">📋</span> Raw Data
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Settings</div>
+      <div class="nav-item" onclick="toggleRealtimeSettings()">
+        <span class="nav-icon">⚙️</span> Real-Time Config
+      </div>
+    </div>
+  </nav>
+  <div style="padding: 16px; margin-top: auto; border-top: 0.5px solid var(--border);">
+    <div style="font-size: 10px; color: var(--text3);">Last updated</div>
+    <div style="font-size: 12px; color: var(--text2); margin-top: 2px;" id="last-updated">—</div>
+    <div style="font-size: 10px; color: var(--text3); margin-top: 8px;">Real-Time Status</div>
+    <div class="realtime-status" id="realtime-indicator">
+      <div class="status-dot" id="status-dot"></div>
+      <span id="status-text">Initializing...</span>
+    </div>
+  </div>
+</aside>
+
+<!-- Main content -->
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="section-title">Executive Dashboard</div>
+      <div class="topbar-subtitle" id="section-sub">Jun 1–10, 2026 · 10-day rolling view</div>
+    </div>
+    <div class="topbar-right">
+      <div class="tab-btns">
+        <button class="tab-btn active" onclick="switchPeriod('all', this)">All Days</button>
+        <button class="tab-btn" onclick="switchPeriod('last5', this)">Last 5 Days</button>
+        <button class="tab-btn" onclick="switchPeriod('last3', this)">Last 3 Days</button>
+      </div>
+      <div class="realtime-status" style="cursor: pointer;" onclick="toggleRealtimeSettings()" title="Click to configure">
+        <div class="status-dot" id="header-status-dot"></div>
+        <span id="header-status-text">Auto</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:100;display:flex;align-items:center;justify-content:center;">
+    <div style="background:var(--surface);border-radius:var(--radius);padding:24px;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <div style="font-size:16px;font-weight:600;margin-bottom:16px;color:var(--text);">Real-Time Configuration</div>
+      
+      <div style="margin-bottom:16px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="auto-refresh-toggle" checked onchange="updateRealtimeSettings()">
+          <span style="font-size:13px;color:var(--text);">Enable Auto-Refresh</span>
+        </label>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:12px;color:var(--text3);margin-bottom:6px;">Refresh Interval (seconds)</label>
+        <input type="number" id="refresh-interval" min="5" max="300" value="15" style="width:100%;padding:8px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;">
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:12px;color:var(--text3);margin-bottom:6px;">Update Source</label>
+        <select id="update-source" onchange="updateRealtimeSettings()" style="width:100%;padding:8px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;">
+          <option value="polling">Polling (Recommended)</option>
+          <option value="websocket">WebSocket (If Available)</option>
+          <option value="hybrid">Hybrid</option>
+        </select>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:20px;">
+        <button class="btn-primary" onclick="saveRealtimeSettings()" style="flex:1;">Save</button>
+        <button class="btn-secondary" onclick="closeRealtimeSettings()" style="flex:1;">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="section active" id="sec-dashboard">
+    <div class="kpi-grid" id="kpi-grid"></div>
+    <div class="chart-grid">
+      <div class="chart-card full">
+        <div class="chart-title">Inbound vs Outbound Boxes</div>
+        <div class="chart-subtitle">Daily volume comparison across reporting period</div>
+        <div id="legend-ib-ob" style="display:flex;gap:16px;margin-bottom:10px;font-size:11px;color:var(--text3);"></div>
+        <div class="chart-wrap" style="height:220px"><canvas id="chartInboundOutbound" role="img" aria-label="Daily inbound vs outbound box volumes"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Achievement % vs Projection</div>
+        <div class="chart-subtitle">Daily attainment rate</div>
+        <div class="chart-wrap" style="height:200px"><canvas id="chartAchievement" role="img" aria-label="Achievement percentage against projection per day"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Vehicles Reported vs Unloaded &gt;4 hrs</div>
+        <div class="chart-subtitle">Daily vehicle performance</div>
+        <div id="legend-veh" style="display:flex;gap:16px;margin-bottom:10px;font-size:11px;color:var(--text3);"></div>
+        <div class="chart-wrap" style="height:200px"><canvas id="chartVehicles" role="img" aria-label="Vehicles reported vs vehicles unloaded over 4 hours"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPERATIONS -->
+  <div class="section" id="sec-operations">
+    <div class="kpi-grid" id="ops-kpis"></div>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-title">Cross-Dock vs Putting Done vs Pending</div>
+        <div class="chart-subtitle">Warehouse throughput breakdown</div>
+        <div id="legend-wh" style="display:flex;gap:16px;margin-bottom:10px;font-size:11px;color:var(--text3);"></div>
+        <div class="chart-wrap" style="height:220px"><canvas id="chartWarehouse" role="img" aria-label="Warehouse operations: cross dock, putting done, putting pending"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">OB Connection Delays (Boxes)</div>
+        <div class="chart-subtitle">Outbound connections &gt;24hrs and &gt;48hrs</div>
+        <div id="legend-ob" style="display:flex;gap:16px;margin-bottom:10px;font-size:11px;color:var(--text3);"></div>
+        <div class="chart-wrap" style="height:220px"><canvas id="chartOBDelay" role="img" aria-label="OB connection delays in boxes over 24 and 48 hours"></canvas></div>
+      </div>
+      <div class="chart-card full">
+        <div class="chart-title">Vehicles Dispatched &gt;5 hrs</div>
+        <div class="chart-subtitle">Late dispatch count per day</div>
+        <div class="chart-wrap" style="height:160px"><canvas id="chartDispatch" role="img" aria-label="Vehicles dispatched over 5 hours by day"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PENDENCY & SLA -->
+  <div class="section" id="sec-pendency">
+    <div class="kpi-grid" id="pend-kpis"></div>
+    <div class="chart-grid">
+      <div class="chart-card full">
+        <div class="chart-title">Total Pendency @10:00 AM</div>
+        <div class="chart-subtitle">Internal pendency trend (lower is better)</div>
+        <div class="chart-wrap" style="height:220px"><canvas id="chartPendency" role="img" aria-label="Total internal pendency at 10 AM daily"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">NZL Aging — &gt;3 Days</div>
+        <div class="chart-subtitle">Non-zero location over 3 days</div>
+        <div class="chart-wrap" style="height:180px"><canvas id="chartNZL3" role="img" aria-label="NZL over 3 days internal"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Docket Breach Analysis</div>
+        <div class="chart-subtitle">24–48 hrs vs &gt;48 hrs breaches</div>
+        <div id="legend-docket" style="display:flex;gap:16px;margin-bottom:10px;font-size:11px;color:var(--text3);"></div>
+        <div class="chart-wrap" style="height:180px"><canvas id="chartDockets" role="img" aria-label="Docket breach 24 to 48 hours vs over 48 hours"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ALERTS -->
+  <div class="section" id="sec-alerts">
+    <div style="margin-bottom:16px;">
+      <div class="section-heading">⚠️ Flagged Metrics (Latest Day)</div>
+    </div>
+    <div class="alerts-grid" id="alerts-grid"></div>
+    <div class="divider"></div>
+    <div class="section-heading">📅 7-Day Summary Heatmap</div>
+    <div style="overflow-x:auto; margin-top:10px;" id="heatmap-wrap"></div>
+  </div>
+
+  <!-- DATA ENTRY -->
+  <div class="section" id="sec-data-entry">
+    <div class="entry-header">
+      <div>
+        <div class="entry-title">Enter Daily Report Data</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:3px;">Add a new day's metrics — dashboard updates automatically</div>
+      </div>
+    </div>
+    <div class="entry-form">
+      <div class="form-section-title">📅 Date</div>
+      <div class="form-grid">
+        <div class="form-field" style="grid-column:1/-1">
+          <label class="form-label">Report Date</label>
+          <input class="form-input" type="date" id="f_date" style="max-width:200px">
+        </div>
+      </div>
+
+      <div class="form-section-title">📦 Inbound Operations</div>
+      <div class="form-grid">
+        <div class="form-field"><label class="form-label">Total Boxes Received</label><input class="form-input" type="number" id="f_boxes_in" placeholder="e.g. 8500"></div>
+        <div class="form-field"><label class="form-label">Total Tons Inbound</label><input class="form-input" type="number" id="f_tons_in" placeholder="e.g. 85.5"></div>
+        <div class="form-field"><label class="form-label">Achievement % vs Projection</label><input class="form-input" type="number" step="0.01" id="f_achieve" placeholder="e.g. 1.15"></div>
+        <div class="form-field"><label class="form-label">Late Vehicles (post 3 AM)</label><input class="form-input" type="number" id="f_late_veh" placeholder="e.g. 2"></div>
+      </div>
+
+      <div class="form-section-title">🚛 Vehicles</div>
+      <div class="form-grid">
+        <div class="form-field"><label class="form-label">Vehicles Reported at MLL</label><input class="form-input" type="number" id="f_veh_report" placeholder="e.g. 35"></div>
+        <div class="form-field"><label class="form-label">Vehicles Unloaded &gt;4 hrs</label><input class="form-input" type="number" id="f_veh_unload" placeholder="e.g. 15"></div>
+        <div class="form-field"><label class="form-label">Vehicles Dispatched (Total)</label><input class="form-input" type="number" id="f_veh_disp" placeholder="e.g. 12"></div>
+        <div class="form-field"><label class="form-label">Vehicles Dispatched &gt;5 hrs</label><input class="form-input" type="number" id="f_veh_disp5" placeholder="e.g. 4"></div>
+      </div>
+
+      <div class="form-section-title">🏭 Warehouse</div>
+      <div class="form-grid">
+        <div class="form-field"><label class="form-label">Cross-Dock (Boxes)</label><input class="form-input" type="number" id="f_xdock" placeholder="e.g. 2500"></div>
+        <div class="form-field"><label class="form-label">Putting Done</label><input class="form-input" type="number" id="f_put_done" placeholder="e.g. 2200"></div>
+        <div class="form-field"><label class="form-label">Putting Pending</label><input class="form-input" type="number" id="f_put_pend" placeholder="e.g. 3000"></div>
+        <div class="form-field"><label class="form-label">Total Boxes Outbound</label><input class="form-input" type="number" id="f_boxes_out" placeholder="e.g. 7500"></div>
+      </div>
+
+      <div class="form-section-title">⏳ Pendency & SLA</div>
+      <div class="form-grid">
+        <div class="form-field"><label class="form-label">Total Pendency @10 AM</label><input class="form-input" type="number" id="f_pend" placeholder="e.g. 6000"></div>
+        <div class="form-field"><label class="form-label">NZL &gt;3 Days (Internal)</label><input class="form-input" type="number" id="f_nzl3" placeholder="e.g. 10"></div>
+        <div class="form-field"><label class="form-label">NZL &gt;7 Days (Internal)</label><input class="form-input" type="number" id="f_nzl7" placeholder="e.g. 0"></div>
+        <div class="form-field"><label class="form-label">Short Connection (LR wise)</label><input class="form-input" type="number" id="f_short" placeholder="e.g. 0"></div>
+      </div>
+
+      <div class="form-section-title">📤 OB Connections</div>
+      <div class="form-grid">
+        <div class="form-field"><label class="form-label">OB Connection &gt;24hrs (Dockets)</label><input class="form-input" type="number" id="f_ob24d" placeholder="e.g. 8"></div>
+        <div class="form-field"><label class="form-label">OB Connection &gt;24hrs (Boxes)</label><input class="form-input" type="number" id="f_ob24b" placeholder="e.g. 40"></div>
+        <div class="form-field"><label class="form-label">OB Connection &gt;48hrs (Boxes)</label><input class="form-input" type="number" id="f_ob48b" placeholder="e.g. 5"></div>
+        <div class="form-field"><label class="form-label">Dockets Breach 24–48 hrs</label><input class="form-input" type="number" id="f_breach24" placeholder="e.g. 3"></div>
+      </div>
+
+      <div class="form-section-title">🚨 Breach</div>
+      <div class="form-grid">
+        <div class="form-field"><label class="form-label">Dockets Breach &gt;48 hrs</label><input class="form-input" type="number" id="f_breach48" placeholder="e.g. 2"></div>
+        <div class="form-field"><label class="form-label">Weight Capture Adherence (0/1)</label><input class="form-input" type="number" id="f_weight" placeholder="1 = OK, 0 = Missed"></div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-primary" onclick="saveEntry()">Save Entry</button>
+        <button class="btn-secondary" onclick="clearForm()">Clear</button>
+        <span class="save-msg" id="save-msg">✓ Entry saved and dashboard updated</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RAW DATA -->
+  <div class="section" id="sec-raw-data">
+    <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
+      <div class="section-heading" style="margin:0;">Raw Data Table</div>
+      <button class="btn-secondary" onclick="exportCSV()">Export CSV</button>
+    </div>
+    <div class="chart-card" style="padding:0;">
+      <div class="table-wrap">
+        <table id="raw-table">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<script>
+const METRICS = [
+  'boxes_in','tons_in','achieve','late_veh',
+  'veh_report','veh_unload','veh_disp','veh_disp5',
+  'xdock','put_done','put_pend','boxes_out',
+  'pend','nzl3','nzl7','short',
+  'ob24d','ob24b','ob48b','breach24',
+  'breach48','weight'
+];
+const METRIC_LABELS = {
+  boxes_in:'Boxes Received', tons_in:'Tons Inbound', achieve:'Achievement %',
+  late_veh:'Late Vehicles', veh_report:'Vehicles Reported', veh_unload:'Unloaded >4h',
+  veh_disp:'Dispatched Total', veh_disp5:'Dispatched >5h',
+  xdock:'Cross-Dock', put_done:'Putting Done', put_pend:'Putting Pending', boxes_out:'Boxes Outbound',
+  pend:'Total Pendency', nzl3:'NZL >3 Days', nzl7:'NZL >7 Days', short:'Short Connection',
+  ob24d:'OB >24h Dockets', ob24b:'OB >24h Boxes', ob48b:'OB >48h Boxes', breach24:'Breach 24-48h',
+  breach48:'Breach >48h', weight:'Weight Adherence'
+};
+
+// Seed with original data from file
+let DATA = [
+  {date:'2026-06-01',boxes_in:7174,tons_in:63.2,achieve:1.05,late_veh:5,veh_report:33,veh_unload:17,veh_disp:10,veh_disp5:6,xdock:2147,put_done:2729,put_pend:2298,boxes_out:5225,pend:6426,nzl3:10,nzl7:0,short:2,ob24d:7,ob24b:29,ob48b:6,breach24:2,breach48:0,weight:1},
+  {date:'2026-06-02',boxes_in:9852,tons_in:98.7,achieve:1.44,late_veh:1,veh_report:37,veh_unload:19,veh_disp:10,veh_disp5:1,xdock:2943,put_done:3127,put_pend:3782,boxes_out:8410,pend:7429,nzl3:103,nzl7:10,short:0,ob24d:11,ob24b:3,ob48b:28,breach24:5,breach48:2,weight:1},
+  {date:'2026-06-03',boxes_in:7708,tons_in:82.2,achieve:1.13,late_veh:0,veh_report:32,veh_unload:18,veh_disp:14,veh_disp5:2,xdock:2079,put_done:2283,put_pend:3346,boxes_out:9575,pend:4973,nzl3:5,nzl7:0,short:1,ob24d:11,ob24b:62,ob48b:1,breach24:6,breach48:5,weight:1},
+  {date:'2026-06-04',boxes_in:7146,tons_in:71.8,achieve:1.04,late_veh:2,veh_report:33,veh_unload:21,veh_disp:13,veh_disp5:3,xdock:2213,put_done:2255,put_pend:2678,boxes_out:6942,pend:5445,nzl3:4,nzl7:0,short:0,ob24d:37,ob24b:133,ob48b:1,breach24:7,breach48:4,weight:1},
+  {date:'2026-06-05',boxes_in:8286,tons_in:79.7,achieve:1.21,late_veh:1,veh_report:34,veh_unload:33,veh_disp:10,veh_disp5:4,xdock:4887,put_done:2479,put_pend:920,boxes_out:8542,pend:4334,nzl3:4,nzl7:0,short:0,ob24d:9,ob24b:53,ob48b:4,breach24:6,breach48:5,weight:1},
+  {date:'2026-06-06',boxes_in:9248,tons_in:96.0,achieve:1.35,late_veh:3,veh_report:37,veh_unload:35,veh_disp:12,veh_disp5:5,xdock:3339,put_done:1796,put_pend:4113,boxes_out:8901,pend:6334,nzl3:4,nzl7:0,short:0,ob24d:5,ob24b:30,ob48b:6,breach24:5,breach48:7,weight:1},
+  {date:'2026-06-07',boxes_in:8621,tons_in:81.8,achieve:1.26,late_veh:0,veh_report:15,veh_unload:10,veh_disp:11,veh_disp5:5,xdock:2918,put_done:2662,put_pend:3041,boxes_out:7904,pend:6087,nzl3:4,nzl7:0,short:0,ob24d:21,ob24b:151,ob48b:6,breach24:0,breach48:0,weight:1},
+  {date:'2026-06-08',boxes_in:8213,tons_in:86.2,achieve:1.03,late_veh:0,veh_report:40,veh_unload:13,veh_disp:12,veh_disp5:6,xdock:2591,put_done:1691,put_pend:3931,boxes_out:8313,pend:6209,nzl3:0,nzl7:0,short:0,ob24d:29,ob24b:35,ob48b:148,breach24:16,breach48:5,weight:1},
+  {date:'2026-06-09',boxes_in:9499,tons_in:100.0,achieve:1.19,late_veh:0,veh_report:36,veh_unload:10,veh_disp:13,veh_disp5:3,xdock:3488,put_done:3063,put_pend:2948,boxes_out:8956,pend:6346,nzl3:50,nzl7:0,short:0,ob24d:3,ob24b:0,ob48b:4,breach24:13,breach48:16,weight:1},
+  {date:'2026-06-10',boxes_in:8309,tons_in:94.0,achieve:1.04,late_veh:1,veh_report:35,veh_unload:13,veh_disp:10,veh_disp5:3,xdock:1413,put_done:946,put_pend:5950,boxes_out:7041,pend:7886,nzl3:92,nzl7:0,short:0,ob24d:9,ob24b:2,ob48b:4,breach24:0,breach48:3,weight:1}
+];
+
+let periodFilter = 'all';
+let charts = {};
+
+// Real-time Configuration
+let realtimeConfig = {
+  enabled: true,
+  interval: 15000,
+  source: 'polling',
+  updateInterval: null,
+  lastUpdateTime: null
+};
+
+// Load configuration from localStorage
+function loadRealtimeConfig() {
+  const saved = localStorage.getItem('mpfbfRealtimeConfig');
+  if(saved) {
+    try {
+      realtimeConfig = { ...realtimeConfig, ...JSON.parse(saved) };
+    } catch(e) {}
+  }
+}
+
+// Save configuration to localStorage
+function saveRealtimeConfig() {
+  localStorage.setItem('mpfbfRealtimeConfig', JSON.stringify({
+    enabled: realtimeConfig.enabled,
+    interval: realtimeConfig.interval,
+    source: realtimeConfig.source
+  }));
+}
+
+function updateRealtimeStatus(status, type = 'online') {
+  const statusDot = document.getElementById('status-dot');
+  const headerDot = document.getElementById('header-status-dot');
+  const statusText = document.getElementById('status-text');
+  const headerText = document.getElementById('header-status-text');
+  
+  if(!statusDot) return;
+  
+  statusDot.className = 'status-dot ' + (type === 'offline' ? 'offline' : type === 'loading' ? 'loading' : '');
+  headerDot.className = 'status-dot ' + (type === 'offline' ? 'offline' : type === 'loading' ? 'loading' : '');
+  
+  statusText.textContent = status;
+  headerText.textContent = status;
+}
+
+function toggleRealtimeSettings() {
+  const modal = document.getElementById('settings-modal');
+  modal.style.display = modal.style.display === 'none' ? 'flex' : 'none';
+  if(modal.style.display === 'flex') {
+    document.getElementById('auto-refresh-toggle').checked = realtimeConfig.enabled;
+    document.getElementById('refresh-interval').value = realtimeConfig.interval / 1000;
+    document.getElementById('update-source').value = realtimeConfig.source;
+  }
+}
+
+function closeRealtimeSettings() {
+  document.getElementById('settings-modal').style.display = 'none';
+}
+
+function updateRealtimeSettings() {
+  // Live preview updates
+}
+
+function saveRealtimeSettings() {
+  realtimeConfig.enabled = document.getElementById('auto-refresh-toggle').checked;
+  realtimeConfig.interval = parseInt(document.getElementById('refresh-interval').value) * 1000;
+  realtimeConfig.source = document.getElementById('update-source').value;
+  
+  saveRealtimeConfig();
+  
+  if(realtimeConfig.updateInterval) clearInterval(realtimeConfig.updateInterval);
+  
+  if(realtimeConfig.enabled) {
+    startRealTimeUpdates();
+  }
+  
+  updateRealtimeStatus(realtimeConfig.enabled ? 'Auto' : 'Manual', 'online');
+  closeRealtimeSettings();
+}
+
+// Simulate real-time data updates
+function simulateDataUpdate() {
+  const lastDay = DATA[DATA.length - 1];
+  const updatedDay = { ...lastDay };
+  
+  // Simulate small variations in metrics
+  const variation = (base, percent = 0.05) => {
+    const change = base * percent * (Math.random() - 0.5) * 2;
+    return Math.max(0, Math.round(base + change));
+  };
+  
+  updatedDay.boxes_in = variation(lastDay.boxes_in, 0.03);
+  updatedDay.boxes_out = variation(lastDay.boxes_out, 0.03);
+  updatedDay.pend = variation(lastDay.pend, 0.05);
+  updatedDay.nzl3 = Math.max(0, lastDay.nzl3 + Math.floor((Math.random() - 0.5) * 4));
+  updatedDay.ob48b = Math.max(0, lastDay.ob48b + Math.floor((Math.random() - 0.5) * 3));
+  updatedDay.veh_unload = variation(lastDay.veh_unload, 0.1);
+  updatedDay.achieve = Math.max(0.9, Math.min(1.5, lastDay.achieve + (Math.random() - 0.5) * 0.05));
+  
+  DATA[DATA.length - 1] = updatedDay;
+  realtimeConfig.lastUpdateTime = new Date();
+  
+  return updatedDay;
+}
+
+// Start real-time polling
+function startRealTimeUpdates() {
+  if(realtimeConfig.updateInterval) clearInterval(realtimeConfig.updateInterval);
+  
+  updateRealtimeStatus('Connecting...', 'loading');
+  
+  if(realtimeConfig.source === 'websocket' || realtimeConfig.source === 'hybrid') {
+    // Try WebSocket (mock for this example)
+    attemptWebSocketConnection();
+  }
+  
+  if(realtimeConfig.source === 'polling' || realtimeConfig.source === 'hybrid') {
+    // Polling fallback
+    realtimeConfig.updateInterval = setInterval(() => {
+      if(realtimeConfig.enabled) {
+        updateRealtimeStatus('Updating...', 'loading');
+        
+        // Simulate API call
+        setTimeout(() => {
+          simulateDataUpdate();
+          rebuildActive();
+          updateRealtimeStatus('Updated ' + new Date().toLocaleTimeString(), 'online');
+        }, 300);
+      }
+    }, realtimeConfig.interval);
+  }
+  
+  setTimeout(() => {
+    if(realtimeConfig.enabled) {
+      updateRealtimeStatus('Auto (' + (realtimeConfig.interval / 1000) + 's)', 'online');
+    }
+  }, 1000);
+}
+
+// WebSocket connection attempt
+let wsConnection = null;
+function attemptWebSocketConnection() {
+  try {
+    // Mock WebSocket URL - replace with your actual WebSocket server
+    const wsURL = 'ws://localhost:8080/mpfbf-updates';
+    
+    wsConnection = new WebSocket(wsURL);
+    
+    wsConnection.onopen = () => {
+      updateRealtimeStatus('WebSocket Active', 'online');
+    };
+    
+    wsConnection.onmessage = (event) => {
+      try {
+        const newData = JSON.parse(event.data);
+        DATA[DATA.length - 1] = { ...DATA[DATA.length - 1], ...newData };
+        rebuildActive();
+        updateRealtimeStatus('Live Update', 'online');
+      } catch(e) {
+        console.error('Error parsing WebSocket data:', e);
+      }
+    };
+    
+    wsConnection.onerror = () => {
+      updateRealtimeStatus('WebSocket Error', 'offline');
+    };
+    
+    wsConnection.onclose = () => {
+      updateRealtimeStatus('WebSocket Closed', 'offline');
+      wsConnection = null;
+    };
+  } catch(e) {
+    console.log('WebSocket not available, using polling');
+    updateRealtimeStatus('Polling', 'online');
+  }
+}
+
+function stopRealTimeUpdates() {
+  if(realtimeConfig.updateInterval) {
+    clearInterval(realtimeConfig.updateInterval);
+    realtimeConfig.updateInterval = null;
+  }
+  if(wsConnection) {
+    wsConnection.close();
+    wsConnection = null;
+  }
+  updateRealtimeStatus('Manual', 'offline');
+}
+
+function getFilteredData() {
+  const sorted = [...DATA].sort((a,b)=>a.date.localeCompare(b.date));
+  if(periodFilter==='last5') return sorted.slice(-5);
+  if(periodFilter==='last3') return sorted.slice(-3);
+  return sorted;
+}
+
+function fmt(n, dec=0) { return n==null||isNaN(n)?'—':Number(n).toLocaleString('en-IN',{maximumFractionDigits:dec}); }
+function fmtDate(d) { const dt=new Date(d+'T00:00:00'); return dt.toLocaleDateString('en-IN',{day:'2-digit',month:'short'}); }
+function avg(arr) { const v=arr.filter(x=>x!=null&&!isNaN(x)); return v.length?v.reduce((a,b)=>a+b,0)/v.length:0; }
+function sum(arr) { return arr.filter(x=>x!=null&&!isNaN(x)).reduce((a,b)=>a+b,0); }
+function last(arr, key) { const d=getFilteredData(); return d.length?d[d.length-1][key]:null; }
+
+const PALETTE = {
+  blue:'#378ADD', blue2:'#185FA5', green:'#639922', green2:'#3B6D11',
+  amber:'#BA7517', red:'#E24B4A', teal:'#1D9E75', purple:'#7F77DD', coral:'#D85A30'
+};
+
+function mkLegend(containerId, items) {
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  el.innerHTML = items.map(i=>`<span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:${i.color};"></span>${i.label}</span>`).join('');
+}
+
+function destroyChart(id) { if(charts[id]){ charts[id].destroy(); delete charts[id]; } }
+
+function buildDashboard() {
+  const d = getFilteredData();
+  const labels = d.map(x=>fmtDate(x.date));
+
+  // KPIs
+  const latestD = d[d.length-1]||{};
+  const kpis = [
+    {label:'Boxes Received (Latest)', value:fmt(latestD.boxes_in), unit:'boxes', sub: `Avg: ${fmt(avg(d.map(x=>x.boxes_in)))}`, color:'blue'},
+    {label:'Boxes Outbound (Latest)', value:fmt(latestD.boxes_out), unit:'boxes', sub:`Avg: ${fmt(avg(d.map(x=>x.boxes_out)))}`, color:'teal'},
+    {label:'Achievement vs Projection', value:((latestD.achieve||0)*100).toFixed(0)+'%', unit:'', sub:'Target: 100%', color: latestD.achieve>=1?'green':'red'},
+    {label:'Total Pendency @10 AM', value:fmt(latestD.pend), unit:'', sub:`10-day avg: ${fmt(avg(d.map(x=>x.pend)))}`, color:'amber'},
+    {label:'Vehicles Reported', value:fmt(latestD.veh_report), unit:'', sub:`Unloaded >4h: ${fmt(latestD.veh_unload)}`, color:'purple'},
+    {label:'NZL >3 Days', value:fmt(latestD.nzl3), unit:'', sub:'Target: 0', color:latestD.nzl3>0?'red':'green'},
+  ];
+  const colorMap = {blue:'var(--blue-bg)',teal:'var(--teal-bg)',green:'var(--green-bg)',red:'var(--red-bg)',amber:'var(--amber-bg)',purple:'var(--purple-bg)'};
+  const textMap = {blue:'var(--blue)',teal:'var(--teal)',green:'var(--green)',red:'var(--red)',amber:'var(--amber)',purple:'var(--purple)'};
+  document.getElementById('kpi-grid').innerHTML = kpis.map(k=>`
+    <div class="kpi-card" style="border-left:3px solid ${textMap[k.color]};">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value" style="color:${textMap[k.color]}">${k.value} <span class="kpi-unit">${k.unit}</span></div>
+      <div class="kpi-trend trend-neutral">${k.sub}</div>
+    </div>`).join('');
+
+  // Inbound vs Outbound
+  destroyChart('chartInboundOutbound');
+  mkLegend('legend-ib-ob',[{color:PALETTE.blue,label:'Inbound Boxes'},{color:PALETTE.teal,label:'Outbound Boxes'}]);
+  charts['chartInboundOutbound'] = new Chart(document.getElementById('chartInboundOutbound'),{
+    type:'bar',
+    data:{labels, datasets:[
+      {label:'Inbound',data:d.map(x=>x.boxes_in),backgroundColor:PALETTE.blue+'99',borderColor:PALETTE.blue,borderWidth:1.5,borderRadius:4},
+      {label:'Outbound',data:d.map(x=>x.boxes_out),backgroundColor:PALETTE.teal+'99',borderColor:PALETTE.teal,borderWidth:1.5,borderRadius:4}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{font:{size:11}}}}}
+  });
+
+  // Achievement
+  destroyChart('chartAchievement');
+  charts['chartAchievement'] = new Chart(document.getElementById('chartAchievement'),{
+    type:'line',
+    data:{labels, datasets:[
+      {label:'Achievement %',data:d.map(x=>+(x.achieve*100).toFixed(1)),borderColor:PALETTE.green,backgroundColor:PALETTE.green+'22',borderWidth:2,pointRadius:4,fill:true,tension:0.3},
+      {label:'Target 100%',data:d.map(()=>100),borderColor:'#E24B4A',borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{min:90,ticks:{font:{size:11},callback:v=>v+'%'}}}}
+  });
+
+  // Vehicles
+  destroyChart('chartVehicles');
+  mkLegend('legend-veh',[{color:PALETTE.blue2,label:'Vehicles Reported'},{color:PALETTE.red,label:'Unloaded >4h'}]);
+  charts['chartVehicles'] = new Chart(document.getElementById('chartVehicles'),{
+    type:'bar',
+    data:{labels, datasets:[
+      {label:'Reported',data:d.map(x=>x.veh_report),backgroundColor:PALETTE.blue2+'99',borderColor:PALETTE.blue2,borderWidth:1.5,borderRadius:4},
+      {label:'Unloaded >4h',data:d.map(x=>x.veh_unload),backgroundColor:PALETTE.red+'99',borderColor:PALETTE.red,borderWidth:1.5,borderRadius:4}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{font:{size:11}}}}}
+  });
+}
+
+function buildOperations() {
+  const d = getFilteredData();
+  const labels = d.map(x=>fmtDate(x.date));
+  const latestD = d[d.length-1]||{};
+
+  document.getElementById('ops-kpis').innerHTML = [
+    {label:'Cross-Dock (Latest)',value:fmt(latestD.xdock),sub:`Avg: ${fmt(avg(d.map(x=>x.xdock)))}`,color:'blue'},
+    {label:'Putting Done (Latest)',value:fmt(latestD.put_done),sub:`Avg: ${fmt(avg(d.map(x=>x.put_done)))}`,color:'teal'},
+    {label:'Putting Pending',value:fmt(latestD.put_pend),sub:`Avg: ${fmt(avg(d.map(x=>x.put_pend)))}`,color:'amber'},
+    {label:'Total Dispatched',value:fmt(sum(d.map(x=>x.veh_disp))),sub:`Latest: ${fmt(latestD.veh_disp)}`,color:'green'},
+    {label:'OB Connection >24h Boxes',value:fmt(latestD.ob24b),sub:`10d sum: ${fmt(sum(d.map(x=>x.ob24b)))}`,color:'red'},
+    {label:'OB Connection >48h Boxes',value:fmt(latestD.ob48b),sub:`10d sum: ${fmt(sum(d.map(x=>x.ob48b)))}`,color:'red'},
+  ].map(k=>`<div class="kpi-card" style="border-left:3px solid var(--${k.color})"><div class="kpi-label">${k.label}</div><div class="kpi-value" style="color:var(--${k.color})">${k.value}</div><div class="kpi-trend trend-neutral">${k.sub}</div></div>`).join('');
+
+  destroyChart('chartWarehouse');
+  mkLegend('legend-wh',[{color:PALETTE.blue,label:'Cross-Dock'},{color:PALETTE.green,label:'Putting Done'},{color:PALETTE.amber,label:'Putting Pending'}]);
+  charts['chartWarehouse'] = new Chart(document.getElementById('chartWarehouse'),{type:'bar',data:{labels,datasets:[
+    {label:'Cross-Dock',data:d.map(x=>x.xdock),backgroundColor:PALETTE.blue+'99',borderColor:PALETTE.blue,borderWidth:1.5,borderRadius:3},
+    {label:'Putting Done',data:d.map(x=>x.put_done),backgroundColor:PALETTE.green+'99',borderColor:PALETTE.green,borderWidth:1.5,borderRadius:3},
+    {label:'Putting Pending',data:d.map(x=>x.put_pend),backgroundColor:PALETTE.amber+'99',borderColor:PALETTE.amber,borderWidth:1.5,borderRadius:3}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{font:{size:11}}}}}});
+
+  destroyChart('chartOBDelay');
+  mkLegend('legend-ob',[{color:PALETTE.amber,label:'OB >24h Boxes'},{color:PALETTE.red,label:'OB >48h Boxes'}]);
+  charts['chartOBDelay'] = new Chart(document.getElementById('chartOBDelay'),{type:'bar',data:{labels,datasets:[
+    {label:'OB >24h',data:d.map(x=>x.ob24b),backgroundColor:PALETTE.amber+'99',borderColor:PALETTE.amber,borderWidth:1.5,borderRadius:3},
+    {label:'OB >48h',data:d.map(x=>x.ob48b),backgroundColor:PALETTE.red+'99',borderColor:PALETTE.red,borderWidth:1.5,borderRadius:3}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{font:{size:11}}}}}});
+
+  destroyChart('chartDispatch');
+  charts['chartDispatch'] = new Chart(document.getElementById('chartDispatch'),{type:'bar',data:{labels,datasets:[
+    {label:'Dispatched >5h',data:d.map(x=>x.veh_disp5),backgroundColor:PALETTE.coral+'cc',borderColor:PALETTE.coral,borderWidth:1.5,borderRadius:4}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{font:{size:11},stepSize:1}}}}});
+}
+
+function buildPendency() {
+  const d = getFilteredData();
+  const labels = d.map(x=>fmtDate(x.date));
+  const latestD = d[d.length-1]||{};
+
+  document.getElementById('pend-kpis').innerHTML = [
+    {label:'Total Pendency (Latest)',value:fmt(latestD.pend),sub:`Avg: ${fmt(avg(d.map(x=>x.pend)))}`,color:'amber'},
+    {label:'NZL >3 Days (Latest)',value:fmt(latestD.nzl3),sub:'Target: 0',color:latestD.nzl3>0?'red':'green'},
+    {label:'NZL >7 Days (Latest)',value:fmt(latestD.nzl7),sub:'Target: 0',color:latestD.nzl7>0?'red':'green'},
+    {label:'Docket Breach 24-48h',value:fmt(latestD.breach24),sub:`10d sum: ${sum(d.map(x=>x.breach24))}`,color:'amber'},
+    {label:'Docket Breach >48h',value:fmt(latestD.breach48),sub:`10d sum: ${sum(d.map(x=>x.breach48))}`,color:'red'},
+    {label:'Short Connections',value:fmt(sum(d.map(x=>x.short))),sub:'Total for period',color:'blue'},
+  ].map(k=>`<div class="kpi-card" style="border-left:3px solid var(--${k.color})"><div class="kpi-label">${k.label}</div><div class="kpi-value" style="color:var(--${k.color})">${k.value}</div><div class="kpi-trend trend-neutral">${k.sub}</div></div>`).join('');
+
+  destroyChart('chartPendency');
+  charts['chartPendency'] = new Chart(document.getElementById('chartPendency'),{type:'line',data:{labels,datasets:[
+    {label:'Pendency',data:d.map(x=>x.pend),borderColor:PALETTE.amber,backgroundColor:PALETTE.amber+'22',borderWidth:2,fill:true,tension:0.3,pointRadius:4}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{font:{size:11}}}}}});
+
+  destroyChart('chartNZL3');
+  charts['chartNZL3'] = new Chart(document.getElementById('chartNZL3'),{type:'bar',data:{labels,datasets:[
+    {label:'NZL >3 Days',data:d.map(x=>x.nzl3),backgroundColor:d.map(x=>x.nzl3>10?PALETTE.red+'cc':PALETTE.amber+'99'),borderWidth:1.5,borderRadius:4}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{font:{size:11}},beginAtZero:true}}}});
+
+  destroyChart('chartDockets');
+  mkLegend('legend-docket',[{color:PALETTE.amber,label:'Breach 24-48h'},{color:PALETTE.red,label:'Breach >48h'}]);
+  charts['chartDockets'] = new Chart(document.getElementById('chartDockets'),{type:'bar',data:{labels,datasets:[
+    {label:'24-48h',data:d.map(x=>x.breach24),backgroundColor:PALETTE.amber+'99',borderColor:PALETTE.amber,borderWidth:1.5,borderRadius:3},
+    {label:'>48h',data:d.map(x=>x.breach48),backgroundColor:PALETTE.red+'99',borderColor:PALETTE.red,borderWidth:1.5,borderRadius:3}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{font:{size:11}}}}}});
+}
+
+function buildAlerts() {
+  const d = getFilteredData();
+  const latestD = d[d.length-1]||{};
+  const prevD = d.length>1?d[d.length-2]:{};
+
+  const alerts = [
+    {label:'Putting Pending (Latest)',value:fmt(latestD.put_pend),desc:`Prev: ${fmt(prevD.put_pend)}. High pending → warehouse congestion.`,type: latestD.put_pend>4000?'danger':latestD.put_pend>2500?'warning':'success'},
+    {label:'Vehicles Unloaded >4h',value:fmt(latestD.veh_unload),desc:`${((latestD.veh_unload/latestD.veh_report)*100).toFixed(0)}% of reported vehicles delayed`,type:latestD.veh_unload/latestD.veh_report>0.5?'danger':'warning'},
+    {label:'OB Connection >48h Boxes',value:fmt(latestD.ob48b),desc:'Critical outbound delay — needs escalation if >10',type:latestD.ob48b>10?'danger':'info'},
+    {label:'NZL >3 Days',value:fmt(latestD.nzl3),desc:'Non-zero location aging; target 0',type:latestD.nzl3>20?'danger':latestD.nzl3>0?'warning':'success'},
+    {label:'Total Pendency @10 AM',value:fmt(latestD.pend),desc:`10-day avg: ${fmt(avg(d.map(x=>x.pend)))}`,type:latestD.pend>7000?'danger':latestD.pend>5500?'warning':'success'},
+    {label:'Achievement vs Target',value:((latestD.achieve||0)*100).toFixed(1)+'%',desc:'Inbound volume vs projection',type:latestD.achieve>=1.1?'success':latestD.achieve>=1?'info':'danger'},
+    {label:'Docket Breach >48h',value:fmt(latestD.breach48),desc:'SLA breach; each case needs RCA',type:latestD.breach48>5?'danger':latestD.breach48>0?'warning':'success'},
+    {label:'Dispatched >5h',value:fmt(latestD.veh_disp5),desc:`Out of ${fmt(latestD.veh_disp)} total dispatched`,type:latestD.veh_disp5>5?'danger':latestD.veh_disp5>2?'warning':'success'}
+  ];
+  document.getElementById('alerts-grid').innerHTML = alerts.map(a=>`
+    <div class="alert-card ${a.type}">
+      <div class="alert-title">${a.label}</div>
+      <div class="alert-value">${a.value}</div>
+      <div class="alert-desc">${a.desc}</div>
+    </div>`).join('');
+
+  // Heatmap
+  const heatMetrics = [{k:'pend',l:'Pendency'},{k:'nzl3',l:'NZL>3d'},{k:'ob48b',l:'OB>48h'},{k:'breach48',l:'Breach>48h'},{k:'put_pend',l:'Pend.Boxes'},{k:'veh_disp5',l:'Disp>5h'}];
+  const maxVals = heatMetrics.map(m=>Math.max(...d.map(x=>+x[m.k]||0)));
+  let html = `<table style="border-collapse:collapse;font-size:11px;width:100%">
+    <tr><th style="padding:6px 10px;text-align:left;color:var(--text3);font-weight:600;background:var(--surface2);border-bottom:0.5px solid var(--border);">Metric</th>
+    ${d.map(x=>`<th style="padding:6px 8px;text-align:center;color:var(--text3);font-weight:500;background:var(--surface2);border-bottom:0.5px solid var(--border);">${fmtDate(x.date)}</th>`).join('')}</tr>`;
+  heatMetrics.forEach((m,mi)=>{
+    html += `<tr><td style="padding:7px 10px;color:var(--text2);font-weight:500;background:var(--surface);border-bottom:0.5px solid var(--border);">${m.l}</td>`;
+    d.forEach(x=>{
+      const v = +x[m.k]||0; const ratio = maxVals[mi]>0?v/maxVals[mi]:0;
+      const r = Math.round(226*ratio+40*(1-ratio)), g = Math.round(75*ratio+243*(1-ratio)), b = Math.round(74*ratio+222*(1-ratio));
+      const bg = `rgba(${r},${g},${b},0.25)`;
+      html += `<td style="padding:7px 8px;text-align:center;background:${bg};border-bottom:0.5px solid var(--border);color:var(--text);">${fmt(v)}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</table>';
+  document.getElementById('heatmap-wrap').innerHTML = html;
+}
+
+function buildRawTable() {
+  const d = getFilteredData();
+  const cols = ['date','boxes_in','boxes_out','achieve','veh_report','veh_unload','veh_disp5','xdock','put_done','put_pend','pend','nzl3','ob24b','ob48b','breach24','breach48'];
+  const heads = {date:'Date',boxes_in:'Boxes In',boxes_out:'Boxes Out',achieve:'Achiev.',veh_report:'Veh. Rpt',veh_unload:'Unld >4h',veh_disp5:'Disp >5h',xdock:'X-Dock',put_done:'Put Done',put_pend:'Put Pend',pend:'Pendency',nzl3:'NZL>3d',ob24b:'OB>24h',ob48b:'OB>48h',breach24:'Br 24-48',breach48:'Br >48h'};
+  const thead = `<tr>${cols.map(c=>`<th>${heads[c]}</th>`).join('')}</tr>`;
+  const tbody = d.map(row=>`<tr>${cols.map(c=>`<td>${c==='date'?fmtDate(row[c]):c==='achieve'?((+row[c]||0)*100).toFixed(0)+'%':fmt(row[c])}</td>`).join('')}</tr>`).join('');
+  document.getElementById('raw-table').querySelector('thead').innerHTML = thead;
+  document.getElementById('raw-table').querySelector('tbody').innerHTML = tbody;
+}
+
+let activeView = 'dashboard';
+function switchView(view, el) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('sec-'+view).classList.add('active');
+  if(el) el.classList.add('active');
+  activeView = view;
+  const titles = {dashboard:'Executive Dashboard',operations:'Operations Overview',pendency:'Pendency & SLA',alerts:'Alerts & Escalations','data-entry':'Enter Daily Data','raw-data':'Raw Data Table'};
+  document.getElementById('section-title').textContent = titles[view]||view;
+  rebuildActive();
+}
+
+function switchPeriod(p, el) {
+  periodFilter = p;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  if(el) el.classList.add('active');
+  rebuildActive();
+}
+
+function rebuildActive() {
+  const v = activeView;
+  if(v==='dashboard') buildDashboard();
+  else if(v==='operations') buildOperations();
+  else if(v==='pendency') buildPendency();
+  else if(v==='alerts') buildAlerts();
+  else if(v==='raw-data') buildRawTable();
+}
+
+function saveEntry() {
+  const d = document.getElementById('f_date').value;
+  if(!d){ alert('Please select a date.'); return; }
+  const row = {date:d};
+  METRICS.forEach(m=>{ row[m]=parseFloat(document.getElementById('f_'+m).value)||0; });
+  const idx = DATA.findIndex(x=>x.date===d);
+  if(idx>=0) DATA[idx]=row; else DATA.push(row);
+  document.getElementById('last-updated').textContent = fmtDate(d);
+  const msg = document.getElementById('save-msg');
+  msg.style.display='inline';
+  setTimeout(()=>msg.style.display='none',2500);
+  rebuildActive();
+}
+
+function clearForm() { METRICS.forEach(m=>document.getElementById('f_'+m).value=''); document.getElementById('f_date').value=''; }
+
+function exportCSV() {
+  const d = getFilteredData();
+  const keys = ['date',...METRICS];
+  const header = keys.map(k=>METRIC_LABELS[k]||k).join(',');
+  const rows = d.map(row=>keys.map(k=>row[k]??'').join(',')).join('\n');
+  const blob = new Blob([header+'\n'+rows],{type:'text/csv'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='MPFBF_Data.csv'; a.click();
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', ()=>{
+  loadRealtimeConfig();
+  buildDashboard();
+  document.getElementById('last-updated').textContent = fmtDate(DATA[DATA.length-1].date);
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('f_date').value = today;
+  
+  if(realtimeConfig.enabled) {
+    startRealTimeUpdates();
+  } else {
+    updateRealtimeStatus('Manual', 'offline');
+  }
+  
+  // Close modal when clicking outside
+  document.getElementById('settings-modal').addEventListener('click', (e) => {
+    if(e.target.id === 'settings-modal') closeRealtimeSettings();
+  });
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+  stopRealTimeUpdates();
+});
+</script>
+</body>
+</html>
