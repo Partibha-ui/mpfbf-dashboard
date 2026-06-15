@@ -148,6 +148,8 @@
   .section-heading { font-size: 13px; font-weight: 600; color: var(--text2); margin: 0 0 10px; display: flex; align-items: center; gap: 6px; }
   .divider { height: 0.5px; background: var(--border); margin: 20px 0; }
 
+  .storage-indicator { font-size: 10px; color: var(--text3); margin-top: 4px; padding: 2px 6px; background: var(--surface2); border-radius: 4px; }
+
   @media (max-width: 700px) {
     .sidebar { display: none; }
     .chart-grid { grid-template-columns: 1fr; }
@@ -205,6 +207,7 @@
       <div class="status-dot" id="status-dot"></div>
       <span id="status-text">Initializing...</span>
     </div>
+    <div class="storage-indicator" id="storage-indicator">📦 Storage: Loading...</div>
   </div>
 </aside>
 
@@ -252,6 +255,12 @@
           <option value="websocket">WebSocket (If Available)</option>
           <option value="hybrid">Hybrid</option>
         </select>
+      </div>
+
+      <div style="margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:var(--radius-sm);border:0.5px solid var(--border);">
+        <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:6px;">Data Storage</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:6px;" id="storage-info">Checking...</div>
+        <button class="btn-secondary" onclick="clearAllData()" style="width:100%;font-size:11px;padding:6px;">🗑️ Clear All Data</button>
       </div>
 
       <div style="display:flex;gap:8px;margin-top:20px;">
@@ -348,7 +357,7 @@
     <div class="entry-header">
       <div>
         <div class="entry-title">Enter Daily Report Data</div>
-        <div style="font-size:12px;color:var(--text3);margin-top:3px;">Add a new day's metrics — dashboard updates automatically</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:3px;">Add a new day's metrics — dashboard updates automatically & data persists</div>
       </div>
     </div>
     <div class="entry-form">
@@ -452,6 +461,9 @@ const METRIC_LABELS = {
   breach48:'Breach >48h', weight:'Weight Adherence'
 };
 
+let periodFilter = 'all';
+let charts = {};
+
 // Seed with original data from file
 let DATA = [
   {date:'2026-06-01',boxes_in:7174,tons_in:63.2,achieve:1.05,late_veh:5,veh_report:33,veh_unload:17,veh_disp:10,veh_disp5:6,xdock:2147,put_done:2729,put_pend:2298,boxes_out:5225,pend:6426,nzl3:10,nzl7:0,short:2,ob24d:7,ob24b:29,ob48b:6,breach24:2,breach48:0,weight:1},
@@ -466,8 +478,163 @@ let DATA = [
   {date:'2026-06-10',boxes_in:8309,tons_in:94.0,achieve:1.04,late_veh:1,veh_report:35,veh_unload:13,veh_disp:10,veh_disp5:3,xdock:1413,put_done:946,put_pend:5950,boxes_out:7041,pend:7886,nzl3:92,nzl7:0,short:0,ob24d:9,ob24b:2,ob48b:4,breach24:0,breach48:3,weight:1}
 ];
 
-let periodFilter = 'all';
-let charts = {};
+// ============================================
+// PERSISTENT STORAGE SYSTEM (IndexedDB + localStorage)
+// ============================================
+let db = null;
+let storageReady = false;
+
+async function initStorage() {
+  try {
+    // Try IndexedDB (more reliable for large data)
+    const request = indexedDB.open('MPFBFDashboard', 1);
+    
+    request.onerror = () => {
+      console.log('IndexedDB failed, using localStorage fallback');
+      initStorageFallback();
+    };
+    
+    request.onsuccess = () => {
+      db = request.result;
+      storageReady = true;
+      loadDataFromStorage();
+      updateStorageIndicator();
+    };
+    
+    request.onupgradeneeded = (e) => {
+      const database = e.target.result;
+      if (!database.objectStoreNames.contains('reports')) {
+        database.createObjectStore('reports', { keyPath: 'date' });
+      }
+    };
+  } catch(e) {
+    console.log('IndexedDB not available, using localStorage');
+    initStorageFallback();
+  }
+}
+
+function initStorageFallback() {
+  // Use localStorage as fallback
+  storageReady = true;
+  loadDataFromStorage();
+  updateStorageIndicator();
+}
+
+async function saveDataToStorage() {
+  try {
+    if(db && storageReady) {
+      // Save to IndexedDB
+      const transaction = db.transaction(['reports'], 'readwrite');
+      const store = transaction.objectStore('reports');
+      
+      DATA.forEach(record => {
+        store.put(record);
+      });
+      
+      transaction.oncomplete = () => {
+        console.log('Data saved to IndexedDB');
+        updateStorageIndicator();
+      };
+      
+      transaction.onerror = () => {
+        console.log('IndexedDB save failed, using localStorage fallback');
+        saveToLocalStorage();
+      };
+    } else {
+      saveToLocalStorage();
+    }
+  } catch(e) {
+    saveToLocalStorage();
+  }
+}
+
+function saveToLocalStorage() {
+  try {
+    const compressed = JSON.stringify(DATA);
+    if(compressed.length < 5242880) { // 5MB limit
+      localStorage.setItem('mpfbf_dashboard_data', compressed);
+      console.log('Data saved to localStorage');
+      updateStorageIndicator();
+    } else {
+      console.warn('Data too large for localStorage');
+    }
+  } catch(e) {
+    console.error('Storage failed:', e);
+  }
+}
+
+async function loadDataFromStorage() {
+  try {
+    if(db && storageReady) {
+      // Load from IndexedDB
+      const transaction = db.transaction(['reports'], 'readonly');
+      const store = transaction.objectStore('reports');
+      const request = store.getAll();
+      
+      request.onsuccess = () => {
+        if(request.result.length > 0) {
+          DATA = request.result.sort((a,b) => a.date.localeCompare(b.date));
+          console.log('Data loaded from IndexedDB:', DATA.length, 'records');
+          rebuildActive();
+        }
+      };
+    } else {
+      loadFromLocalStorage();
+    }
+  } catch(e) {
+    loadFromLocalStorage();
+  }
+}
+
+function loadFromLocalStorage() {
+  try {
+    const saved = localStorage.getItem('mpfbf_dashboard_data');
+    if(saved) {
+      DATA = JSON.parse(saved);
+      console.log('Data loaded from localStorage:', DATA.length, 'records');
+      rebuildActive();
+    }
+  } catch(e) {
+    console.error('Failed to load from localStorage:', e);
+  }
+}
+
+function updateStorageIndicator() {
+  const indicator = document.getElementById('storage-indicator');
+  const info = document.getElementById('storage-info');
+  
+  if(!indicator) return;
+  
+  const storageType = db ? '📦 IndexedDB' : '💾 localStorage';
+  const recordCount = DATA.length;
+  
+  indicator.textContent = `${storageType} • ${recordCount} records`;
+  
+  if(info) {
+    info.innerHTML = `<strong>Active Storage:</strong> ${db ? 'IndexedDB (Recommended)' : 'localStorage (Limited)'}<br>
+    <strong>Records:</strong> ${recordCount} entries<br>
+    <strong>Last Save:</strong> ${new Date().toLocaleTimeString()}`;
+  }
+}
+
+function clearAllData() {
+  if(confirm('⚠️ Are you sure? This will delete all dashboard data!\n\nClick OK to confirm deletion.')) {
+    DATA = [];
+    
+    try {
+      if(db && storageReady) {
+        const transaction = db.transaction(['reports'], 'readwrite');
+        const store = transaction.objectStore('reports');
+        store.clear();
+      }
+    } catch(e) {}
+    
+    localStorage.removeItem('mpfbf_dashboard_data');
+    updateStorageIndicator();
+    rebuildActive();
+    alert('✓ All data cleared');
+  }
+}
 
 // Real-time Configuration
 let realtimeConfig = {
@@ -519,6 +686,7 @@ function toggleRealtimeSettings() {
     document.getElementById('auto-refresh-toggle').checked = realtimeConfig.enabled;
     document.getElementById('refresh-interval').value = realtimeConfig.interval / 1000;
     document.getElementById('update-source').value = realtimeConfig.source;
+    updateStorageIndicator();
   }
 }
 
@@ -569,6 +737,9 @@ function simulateDataUpdate() {
   DATA[DATA.length - 1] = updatedDay;
   realtimeConfig.lastUpdateTime = new Date();
   
+  // Save to persistent storage
+  saveDataToStorage();
+  
   return updatedDay;
 }
 
@@ -579,17 +750,14 @@ function startRealTimeUpdates() {
   updateRealtimeStatus('Connecting...', 'loading');
   
   if(realtimeConfig.source === 'websocket' || realtimeConfig.source === 'hybrid') {
-    // Try WebSocket (mock for this example)
     attemptWebSocketConnection();
   }
   
   if(realtimeConfig.source === 'polling' || realtimeConfig.source === 'hybrid') {
-    // Polling fallback
     realtimeConfig.updateInterval = setInterval(() => {
       if(realtimeConfig.enabled) {
         updateRealtimeStatus('Updating...', 'loading');
         
-        // Simulate API call
         setTimeout(() => {
           simulateDataUpdate();
           rebuildActive();
@@ -610,7 +778,6 @@ function startRealTimeUpdates() {
 let wsConnection = null;
 function attemptWebSocketConnection() {
   try {
-    // Mock WebSocket URL - replace with your actual WebSocket server
     const wsURL = 'ws://localhost:8080/mpfbf-updates';
     
     wsConnection = new WebSocket(wsURL);
@@ -623,6 +790,7 @@ function attemptWebSocketConnection() {
       try {
         const newData = JSON.parse(event.data);
         DATA[DATA.length - 1] = { ...DATA[DATA.length - 1], ...newData };
+        saveDataToStorage();
         rebuildActive();
         updateRealtimeStatus('Live Update', 'online');
       } catch(e) {
@@ -686,7 +854,6 @@ function buildDashboard() {
   const d = getFilteredData();
   const labels = d.map(x=>fmtDate(x.date));
 
-  // KPIs
   const latestD = d[d.length-1]||{};
   const kpis = [
     {label:'Boxes Received (Latest)', value:fmt(latestD.boxes_in), unit:'boxes', sub: `Avg: ${fmt(avg(d.map(x=>x.boxes_in)))}`, color:'blue'},
@@ -705,7 +872,6 @@ function buildDashboard() {
       <div class="kpi-trend trend-neutral">${k.sub}</div>
     </div>`).join('');
 
-  // Inbound vs Outbound
   destroyChart('chartInboundOutbound');
   mkLegend('legend-ib-ob',[{color:PALETTE.blue,label:'Inbound Boxes'},{color:PALETTE.teal,label:'Outbound Boxes'}]);
   charts['chartInboundOutbound'] = new Chart(document.getElementById('chartInboundOutbound'),{
@@ -717,7 +883,6 @@ function buildDashboard() {
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{font:{size:11}}}}}
   });
 
-  // Achievement
   destroyChart('chartAchievement');
   charts['chartAchievement'] = new Chart(document.getElementById('chartAchievement'),{
     type:'line',
@@ -728,7 +893,6 @@ function buildDashboard() {
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{min:90,ticks:{font:{size:11},callback:v=>v+'%'}}}}
   });
 
-  // Vehicles
   destroyChart('chartVehicles');
   mkLegend('legend-veh',[{color:PALETTE.blue2,label:'Vehicles Reported'},{color:PALETTE.red,label:'Unloaded >4h'}]);
   charts['chartVehicles'] = new Chart(document.getElementById('chartVehicles'),{
@@ -830,7 +994,6 @@ function buildAlerts() {
       <div class="alert-desc">${a.desc}</div>
     </div>`).join('');
 
-  // Heatmap
   const heatMetrics = [{k:'pend',l:'Pendency'},{k:'nzl3',l:'NZL>3d'},{k:'ob48b',l:'OB>48h'},{k:'breach48',l:'Breach>48h'},{k:'put_pend',l:'Pend.Boxes'},{k:'veh_disp5',l:'Disp>5h'}];
   const maxVals = heatMetrics.map(m=>Math.max(...d.map(x=>+x[m.k]||0)));
   let html = `<table style="border-collapse:collapse;font-size:11px;width:100%">
@@ -895,6 +1058,10 @@ function saveEntry() {
   METRICS.forEach(m=>{ row[m]=parseFloat(document.getElementById('f_'+m).value)||0; });
   const idx = DATA.findIndex(x=>x.date===d);
   if(idx>=0) DATA[idx]=row; else DATA.push(row);
+  
+  // Save to persistent storage
+  saveDataToStorage();
+  
   document.getElementById('last-updated').textContent = fmtDate(d);
   const msg = document.getElementById('save-msg');
   msg.style.display='inline';
@@ -914,7 +1081,10 @@ function exportCSV() {
 }
 
 // Init
-document.addEventListener('DOMContentLoaded', ()=>{
+document.addEventListener('DOMContentLoaded', async ()=>{
+  // Initialize storage first
+  await initStorage();
+  
   loadRealtimeConfig();
   buildDashboard();
   document.getElementById('last-updated').textContent = fmtDate(DATA[DATA.length-1].date);
@@ -927,7 +1097,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
     updateRealtimeStatus('Manual', 'offline');
   }
   
-  // Close modal when clicking outside
   document.getElementById('settings-modal').addEventListener('click', (e) => {
     if(e.target.id === 'settings-modal') closeRealtimeSettings();
   });
@@ -936,6 +1105,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 // Cleanup on page unload
 window.addEventListener('beforeunload', () => {
   stopRealTimeUpdates();
+  saveDataToStorage();
 });
 </script>
 </body>
