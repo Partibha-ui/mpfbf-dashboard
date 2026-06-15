@@ -32,11 +32,27 @@
   body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
   .app { display: flex; min-height: 100vh; }
 
+  /* Login Modal */
+  .login-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+  .login-card { background: var(--surface); border-radius: var(--radius); padding: 32px; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+  .login-card h1 { font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+  .login-card p { font-size: 13px; color: var(--text3); margin-bottom: 24px; }
+  .login-field { margin-bottom: 16px; }
+  .login-field label { display: block; font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .login-field input { width: 100%; padding: 10px 12px; border: 0.5px solid var(--border2); border-radius: var(--radius-sm); font-size: 13px; background: var(--bg); color: var(--text); font-family: var(--font); }
+  .login-field input:focus { outline: none; border-color: var(--blue-light); box-shadow: 0 0 0 2px rgba(55,138,221,0.15); }
+  .login-btn { width: 100%; padding: 10px; background: var(--blue); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+  .login-btn:hover { opacity: 0.9; }
+  .login-error { font-size: 12px; color: var(--red); margin-top: 12px; padding: 8px 10px; background: var(--red-bg); border-radius: 4px; display: none; }
+
   /* Sidebar */
   .sidebar { width: 220px; min-width: 220px; background: var(--surface); border-right: 0.5px solid var(--border2); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
   .sidebar-logo { padding: 20px 16px 12px; border-bottom: 0.5px solid var(--border); }
   .sidebar-logo h1 { font-size: 15px; font-weight: 600; color: var(--blue); letter-spacing: 0.5px; }
   .sidebar-logo p { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .sidebar-user { padding: 12px 16px; border-bottom: 0.5px solid var(--border); background: var(--surface2); border-radius: 6px; margin: 12px; }
+  .sidebar-user-name { font-size: 12px; font-weight: 600; color: var(--text); }
+  .sidebar-user-email { font-size: 10px; color: var(--text3); margin-top: 2px; }
   .nav-section { padding: 12px 0 4px; }
   .nav-label { font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; padding: 0 16px 6px; }
   .nav-item { display: flex; align-items: center; gap: 8px; padding: 8px 16px; cursor: pointer; font-size: 13px; color: var(--text2); border-radius: 0; transition: background 0.15s; }
@@ -60,9 +76,6 @@
   .status-dot.offline { background: var(--red); animation: none; }
   .status-dot.loading { background: var(--amber); animation: pulse 1s infinite; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-  
-  .update-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; background: var(--green-bg); color: var(--green); font-size: 10px; font-weight: 600; animation: slideIn 0.3s ease; }
-  @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
 
   /* Sections */
   .section { display: none; padding: 20px 24px; }
@@ -88,13 +101,6 @@
   .chart-subtitle { font-size: 11px; color: var(--text3); margin-bottom: 14px; }
   .chart-wrap { position: relative; width: 100%; }
 
-  /* Status badges */
-  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
-  .badge-green { background: var(--green-bg); color: var(--green); }
-  .badge-red { background: var(--red-bg); color: var(--red); }
-  .badge-amber { background: var(--amber-bg); color: var(--amber); }
-  .badge-blue { background: var(--blue-bg); color: var(--blue); }
-
   /* Data Table */
   .table-wrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -104,25 +110,6 @@
   tr:hover td { background: var(--surface2); }
   tr.row-updated td { animation: rowHighlight 0.6s ease; }
   @keyframes rowHighlight { 0% { background: var(--green-bg); } 100% { background: transparent; } }
-  .td-metric { color: var(--text2); font-size: 12px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
-
-  /* Data Entry */
-  .entry-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-  .entry-title { font-size: 15px; font-weight: 600; }
-  .entry-form { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-  .form-section-title { background: var(--surface2); padding: 10px 16px; font-size: 12px; font-weight: 600; color: var(--text2); border-bottom: 0.5px solid var(--border); text-transform: uppercase; letter-spacing: 0.5px; }
-  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0; }
-  .form-field { padding: 12px 16px; border-bottom: 0.5px solid var(--border); border-right: 0.5px solid var(--border); }
-  .form-field:nth-child(even) { border-right: none; }
-  .form-label { font-size: 11px; color: var(--text3); margin-bottom: 5px; display: block; }
-  .form-input { width: 100%; padding: 6px 8px; border: 0.5px solid var(--border2); border-radius: var(--radius-sm); font-size: 13px; background: var(--bg); color: var(--text); font-family: var(--font); }
-  .form-input:focus { outline: none; border-color: var(--blue-light); box-shadow: 0 0 0 2px rgba(55,138,221,0.15); }
-  .form-actions { padding: 14px 16px; display: flex; gap: 10px; align-items: center; }
-  .btn-primary { padding: 8px 20px; background: var(--blue); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; }
-  .btn-primary:hover { opacity: 0.9; }
-  .btn-secondary { padding: 8px 16px; background: transparent; color: var(--text2); border: 0.5px solid var(--border2); border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; }
-  .btn-secondary:hover { background: var(--surface2); }
-  .save-msg { font-size: 12px; color: var(--green); display: none; }
 
   /* Alerts section */
   .alerts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
@@ -131,13 +118,6 @@
   .alert-card.warning { background: var(--amber-bg); border-color: var(--amber-light); }
   .alert-card.success { background: var(--green-bg); border-color: var(--green-light); }
   .alert-card.info { background: var(--blue-bg); border-color: var(--blue-light); }
-  .alert-card.updated { animation: alertUpdate 0.6s ease; }
-  @keyframes alertUpdate { 0% { transform: scale(1.02); } 100% { transform: scale(1); } }
-  .alert-title { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
-  .alert-card.danger .alert-title { color: var(--red); }
-  .alert-card.warning .alert-title { color: var(--amber); }
-  .alert-card.success .alert-title { color: var(--green); }
-  .alert-card.info .alert-title { color: var(--blue); }
   .alert-value { font-size: 28px; font-weight: 700; line-height: 1; }
   .alert-card.danger .alert-value { color: var(--red); }
   .alert-card.warning .alert-value { color: var(--amber); }
@@ -149,6 +129,9 @@
   .divider { height: 0.5px; background: var(--border); margin: 20px 0; }
 
   .storage-indicator { font-size: 10px; color: var(--text3); margin-top: 4px; padding: 2px 6px; background: var(--surface2); border-radius: 4px; }
+  
+  .logout-btn { width: calc(100% - 32px); padding: 8px; background: var(--red-light); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; cursor: pointer; margin: 16px; }
+  .logout-btn:hover { opacity: 0.9; }
 
   @media (max-width: 700px) {
     .sidebar { display: none; }
@@ -159,7 +142,30 @@
 </style>
 </head>
 <body>
-<div class="app">
+
+<!-- Login Overlay -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-card">
+    <h1>📊 MPFBF Dashboard</h1>
+    <p>Sign in to access your performance reports</p>
+    
+    <div class="login-field">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="your@email.com" autocomplete="email">
+    </div>
+    
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    
+    <button class="login-btn" onclick="handleLogin()">Sign In</button>
+    
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<div class="app" id="app-main" style="display:none;">
 
 <!-- Sidebar -->
 <aside class="sidebar">
@@ -167,6 +173,12 @@
     <h1>MPFBF</h1>
     <p>Performance Report Card</p>
   </div>
+  
+  <div class="sidebar-user">
+    <div class="sidebar-user-name" id="user-display-name">User</div>
+    <div class="sidebar-user-email" id="user-display-email">user@example.com</div>
+  </div>
+
   <nav>
     <div class="nav-section">
       <div class="nav-label">Views</div>
@@ -192,13 +204,8 @@
         <span class="nav-icon">📋</span> Raw Data
       </div>
     </div>
-    <div class="nav-section">
-      <div class="nav-label">Settings</div>
-      <div class="nav-item" onclick="toggleRealtimeSettings()">
-        <span class="nav-icon">⚙️</span> Real-Time Config
-      </div>
-    </div>
   </nav>
+  
   <div style="padding: 16px; margin-top: auto; border-top: 0.5px solid var(--border);">
     <div style="font-size: 10px; color: var(--text3);">Last updated</div>
     <div style="font-size: 12px; color: var(--text2); margin-top: 2px;" id="last-updated">—</div>
@@ -209,6 +216,8 @@
     </div>
     <div class="storage-indicator" id="storage-indicator">📦 Storage: Loading...</div>
   </div>
+  
+  <button class="logout-btn" onclick="handleLogout()">🚪 Logout</button>
 </aside>
 
 <!-- Main content -->
@@ -224,48 +233,9 @@
         <button class="tab-btn" onclick="switchPeriod('last5', this)">Last 5 Days</button>
         <button class="tab-btn" onclick="switchPeriod('last3', this)">Last 3 Days</button>
       </div>
-      <div class="realtime-status" style="cursor: pointer;" onclick="toggleRealtimeSettings()" title="Click to configure">
+      <div class="realtime-status" style="cursor: pointer;" title="Real-time updates">
         <div class="status-dot" id="header-status-dot"></div>
         <span id="header-status-text">Auto</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Settings Modal -->
-  <div id="settings-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:100;display:flex;align-items:center;justify-content:center;">
-    <div style="background:var(--surface);border-radius:var(--radius);padding:24px;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-      <div style="font-size:16px;font-weight:600;margin-bottom:16px;color:var(--text);">Real-Time Configuration</div>
-      
-      <div style="margin-bottom:16px;">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-          <input type="checkbox" id="auto-refresh-toggle" checked onchange="updateRealtimeSettings()">
-          <span style="font-size:13px;color:var(--text);">Enable Auto-Refresh</span>
-        </label>
-      </div>
-
-      <div style="margin-bottom:16px;">
-        <label style="display:block;font-size:12px;color:var(--text3);margin-bottom:6px;">Refresh Interval (seconds)</label>
-        <input type="number" id="refresh-interval" min="5" max="300" value="15" style="width:100%;padding:8px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;">
-      </div>
-
-      <div style="margin-bottom:16px;">
-        <label style="display:block;font-size:12px;color:var(--text3);margin-bottom:6px;">Update Source</label>
-        <select id="update-source" onchange="updateRealtimeSettings()" style="width:100%;padding:8px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;">
-          <option value="polling">Polling (Recommended)</option>
-          <option value="websocket">WebSocket (If Available)</option>
-          <option value="hybrid">Hybrid</option>
-        </select>
-      </div>
-
-      <div style="margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:var(--radius-sm);border:0.5px solid var(--border);">
-        <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:6px;">Data Storage</div>
-        <div style="font-size:11px;color:var(--text2);margin-bottom:6px;" id="storage-info">Checking...</div>
-        <button class="btn-secondary" onclick="clearAllData()" style="width:100%;font-size:11px;padding:6px;">🗑️ Clear All Data</button>
-      </div>
-
-      <div style="display:flex;gap:8px;margin-top:20px;">
-        <button class="btn-primary" onclick="saveRealtimeSettings()" style="flex:1;">Save</button>
-        <button class="btn-secondary" onclick="closeRealtimeSettings()" style="flex:1;">Close</button>
       </div>
     </div>
   </div>
@@ -278,18 +248,18 @@
         <div class="chart-title">Inbound vs Outbound Boxes</div>
         <div class="chart-subtitle">Daily volume comparison across reporting period</div>
         <div id="legend-ib-ob" style="display:flex;gap:16px;margin-bottom:10px;font-size:11px;color:var(--text3);"></div>
-        <div class="chart-wrap" style="height:220px"><canvas id="chartInboundOutbound" role="img" aria-label="Daily inbound vs outbound box volumes"></canvas></div>
+        <div class="chart-wrap" style="height:220px"><canvas id="chartInboundOutbound"></canvas></div>
       </div>
       <div class="chart-card">
         <div class="chart-title">Achievement % vs Projection</div>
         <div class="chart-subtitle">Daily attainment rate</div>
-        <div class="chart-wrap" style="height:200px"><canvas id="chartAchievement" role="img" aria-label="Achievement percentage against projection per day"></canvas></div>
+        <div class="chart-wrap" style="height:200px"><canvas id="chartAchievement"></canvas></div>
       </div>
       <div class="chart-card">
         <div class="chart-title">Vehicles Reported vs Unloaded &gt;4 hrs</div>
         <div class="chart-subtitle">Daily vehicle performance</div>
         <div id="legend-veh" style="display:flex;gap:16px;margin-bottom:10px;font-size:11px;color:var(--text3);"></div>
-        <div class="chart-wrap" style="height:200px"><canvas id="chartVehicles" role="img" aria-label="Vehicles reported vs vehicles unloaded over 4 hours"></canvas></div>
+        <div class="chart-wrap" style="height:200px"><canvas id="chartVehicles"></canvas></div>
       </div>
     </div>
   </div>
@@ -302,18 +272,18 @@
         <div class="chart-title">Cross-Dock vs Putting Done vs Pending</div>
         <div class="chart-subtitle">Warehouse throughput breakdown</div>
         <div id="legend-wh" style="display:flex;gap:16px;margin-bottom:10px;font-size:11px;color:var(--text3);"></div>
-        <div class="chart-wrap" style="height:220px"><canvas id="chartWarehouse" role="img" aria-label="Warehouse operations: cross dock, putting done, putting pending"></canvas></div>
+        <div class="chart-wrap" style="height:220px"><canvas id="chartWarehouse"></canvas></div>
       </div>
       <div class="chart-card">
         <div class="chart-title">OB Connection Delays (Boxes)</div>
         <div class="chart-subtitle">Outbound connections &gt;24hrs and &gt;48hrs</div>
         <div id="legend-ob" style="display:flex;gap:16px;margin-bottom:10px;font-size:11px;color:var(--text3);"></div>
-        <div class="chart-wrap" style="height:220px"><canvas id="chartOBDelay" role="img" aria-label="OB connection delays in boxes over 24 and 48 hours"></canvas></div>
+        <div class="chart-wrap" style="height:220px"><canvas id="chartOBDelay"></canvas></div>
       </div>
       <div class="chart-card full">
         <div class="chart-title">Vehicles Dispatched &gt;5 hrs</div>
         <div class="chart-subtitle">Late dispatch count per day</div>
-        <div class="chart-wrap" style="height:160px"><canvas id="chartDispatch" role="img" aria-label="Vehicles dispatched over 5 hours by day"></canvas></div>
+        <div class="chart-wrap" style="height:160px"><canvas id="chartDispatch"></canvas></div>
       </div>
     </div>
   </div>
@@ -325,18 +295,18 @@
       <div class="chart-card full">
         <div class="chart-title">Total Pendency @10:00 AM</div>
         <div class="chart-subtitle">Internal pendency trend (lower is better)</div>
-        <div class="chart-wrap" style="height:220px"><canvas id="chartPendency" role="img" aria-label="Total internal pendency at 10 AM daily"></canvas></div>
+        <div class="chart-wrap" style="height:220px"><canvas id="chartPendency"></canvas></div>
       </div>
       <div class="chart-card">
         <div class="chart-title">NZL Aging — &gt;3 Days</div>
         <div class="chart-subtitle">Non-zero location over 3 days</div>
-        <div class="chart-wrap" style="height:180px"><canvas id="chartNZL3" role="img" aria-label="NZL over 3 days internal"></canvas></div>
+        <div class="chart-wrap" style="height:180px"><canvas id="chartNZL3"></canvas></div>
       </div>
       <div class="chart-card">
         <div class="chart-title">Docket Breach Analysis</div>
         <div class="chart-subtitle">24–48 hrs vs &gt;48 hrs breaches</div>
         <div id="legend-docket" style="display:flex;gap:16px;margin-bottom:10px;font-size:11px;color:var(--text3);"></div>
-        <div class="chart-wrap" style="height:180px"><canvas id="chartDockets" role="img" aria-label="Docket breach 24 to 48 hours vs over 48 hours"></canvas></div>
+        <div class="chart-wrap" style="height:180px"><canvas id="chartDockets"></canvas></div>
       </div>
     </div>
   </div>
@@ -354,71 +324,27 @@
 
   <!-- DATA ENTRY -->
   <div class="section" id="sec-data-entry">
-    <div class="entry-header">
-      <div>
-        <div class="entry-title">Enter Daily Report Data</div>
-        <div style="font-size:12px;color:var(--text3);margin-top:3px;">Add a new day's metrics — dashboard updates automatically & data persists</div>
-      </div>
+    <div style="margin-bottom:16px;">
+      <div class="entry-title">Enter Daily Report Data</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:3px;">Add a new day's metrics — dashboard updates automatically & data persists</div>
     </div>
-    <div class="entry-form">
-      <div class="form-section-title">📅 Date</div>
-      <div class="form-grid">
-        <div class="form-field" style="grid-column:1/-1">
-          <label class="form-label">Report Date</label>
-          <input class="form-input" type="date" id="f_date" style="max-width:200px">
+    <div style="background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); overflow: hidden;">
+      <div style="background: var(--surface2); padding: 10px 16px; font-size: 12px; font-weight: 600; color: var(--text2); border-bottom: 0.5px solid var(--border); text-transform: uppercase; letter-spacing: 0.5px;">📅 Date</div>
+      <div style="display: grid; grid-template-columns: 1fr; gap: 0;">
+        <div style="padding: 12px 16px; border-bottom: 0.5px solid var(--border);">
+          <label style="font-size: 11px; color: var(--text3); margin-bottom: 5px; display: block;">Report Date</label>
+          <input class="form-input" type="date" id="f_date" style="max-width:200px;width:100%;padding:6px 8px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;">
         </div>
       </div>
-
-      <div class="form-section-title">📦 Inbound Operations</div>
-      <div class="form-grid">
-        <div class="form-field"><label class="form-label">Total Boxes Received</label><input class="form-input" type="number" id="f_boxes_in" placeholder="e.g. 8500"></div>
-        <div class="form-field"><label class="form-label">Total Tons Inbound</label><input class="form-input" type="number" id="f_tons_in" placeholder="e.g. 85.5"></div>
-        <div class="form-field"><label class="form-label">Achievement % vs Projection</label><input class="form-input" type="number" step="0.01" id="f_achieve" placeholder="e.g. 1.15"></div>
-        <div class="form-field"><label class="form-label">Late Vehicles (post 3 AM)</label><input class="form-input" type="number" id="f_late_veh" placeholder="e.g. 2"></div>
+      <div style="background: var(--surface2); padding: 10px 16px; font-size: 12px; font-weight: 600; color: var(--text2); border-bottom: 0.5px solid var(--border); text-transform: uppercase;">📦 Inbound Operations</div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0;">
+        <div style="padding: 12px 16px; border-bottom: 0.5px solid var(--border); border-right: 0.5px solid var(--border);"><label style="font-size: 11px; color: var(--text3); margin-bottom: 5px; display: block;">Total Boxes Received</label><input class="form-input" type="number" id="f_boxes_in" style="width:100%;padding:6px 8px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;" placeholder="e.g. 8500"></div>
+        <div style="padding: 12px 16px; border-bottom: 0.5px solid var(--border);"><label style="font-size: 11px; color: var(--text3); margin-bottom: 5px; display: block;">Total Tons Inbound</label><input class="form-input" type="number" id="f_tons_in" style="width:100%;padding:6px 8px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;" placeholder="e.g. 85.5"></div>
       </div>
-
-      <div class="form-section-title">🚛 Vehicles</div>
-      <div class="form-grid">
-        <div class="form-field"><label class="form-label">Vehicles Reported at MLL</label><input class="form-input" type="number" id="f_veh_report" placeholder="e.g. 35"></div>
-        <div class="form-field"><label class="form-label">Vehicles Unloaded &gt;4 hrs</label><input class="form-input" type="number" id="f_veh_unload" placeholder="e.g. 15"></div>
-        <div class="form-field"><label class="form-label">Vehicles Dispatched (Total)</label><input class="form-input" type="number" id="f_veh_disp" placeholder="e.g. 12"></div>
-        <div class="form-field"><label class="form-label">Vehicles Dispatched &gt;5 hrs</label><input class="form-input" type="number" id="f_veh_disp5" placeholder="e.g. 4"></div>
-      </div>
-
-      <div class="form-section-title">🏭 Warehouse</div>
-      <div class="form-grid">
-        <div class="form-field"><label class="form-label">Cross-Dock (Boxes)</label><input class="form-input" type="number" id="f_xdock" placeholder="e.g. 2500"></div>
-        <div class="form-field"><label class="form-label">Putting Done</label><input class="form-input" type="number" id="f_put_done" placeholder="e.g. 2200"></div>
-        <div class="form-field"><label class="form-label">Putting Pending</label><input class="form-input" type="number" id="f_put_pend" placeholder="e.g. 3000"></div>
-        <div class="form-field"><label class="form-label">Total Boxes Outbound</label><input class="form-input" type="number" id="f_boxes_out" placeholder="e.g. 7500"></div>
-      </div>
-
-      <div class="form-section-title">⏳ Pendency & SLA</div>
-      <div class="form-grid">
-        <div class="form-field"><label class="form-label">Total Pendency @10 AM</label><input class="form-input" type="number" id="f_pend" placeholder="e.g. 6000"></div>
-        <div class="form-field"><label class="form-label">NZL &gt;3 Days (Internal)</label><input class="form-input" type="number" id="f_nzl3" placeholder="e.g. 10"></div>
-        <div class="form-field"><label class="form-label">NZL &gt;7 Days (Internal)</label><input class="form-input" type="number" id="f_nzl7" placeholder="e.g. 0"></div>
-        <div class="form-field"><label class="form-label">Short Connection (LR wise)</label><input class="form-input" type="number" id="f_short" placeholder="e.g. 0"></div>
-      </div>
-
-      <div class="form-section-title">📤 OB Connections</div>
-      <div class="form-grid">
-        <div class="form-field"><label class="form-label">OB Connection &gt;24hrs (Dockets)</label><input class="form-input" type="number" id="f_ob24d" placeholder="e.g. 8"></div>
-        <div class="form-field"><label class="form-label">OB Connection &gt;24hrs (Boxes)</label><input class="form-input" type="number" id="f_ob24b" placeholder="e.g. 40"></div>
-        <div class="form-field"><label class="form-label">OB Connection &gt;48hrs (Boxes)</label><input class="form-input" type="number" id="f_ob48b" placeholder="e.g. 5"></div>
-        <div class="form-field"><label class="form-label">Dockets Breach 24–48 hrs</label><input class="form-input" type="number" id="f_breach24" placeholder="e.g. 3"></div>
-      </div>
-
-      <div class="form-section-title">🚨 Breach</div>
-      <div class="form-grid">
-        <div class="form-field"><label class="form-label">Dockets Breach &gt;48 hrs</label><input class="form-input" type="number" id="f_breach48" placeholder="e.g. 2"></div>
-        <div class="form-field"><label class="form-label">Weight Capture Adherence (0/1)</label><input class="form-input" type="number" id="f_weight" placeholder="1 = OK, 0 = Missed"></div>
-      </div>
-
-      <div class="form-actions">
-        <button class="btn-primary" onclick="saveEntry()">Save Entry</button>
-        <button class="btn-secondary" onclick="clearForm()">Clear</button>
-        <span class="save-msg" id="save-msg">✓ Entry saved and dashboard updated</span>
+      <div style="padding: 14px 16px; display: flex; gap: 10px;">
+        <button style="padding:8px 20px;background:var(--blue);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;" onclick="saveEntry()">Save Entry</button>
+        <button style="padding:8px 16px;background:transparent;color:var(--text2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;cursor:pointer;" onclick="clearForm()">Clear</button>
+        <span style="font-size:12px;color:var(--green);display:none;" id="save-msg">✓ Entry saved</span>
       </div>
     </div>
   </div>
@@ -427,9 +353,9 @@
   <div class="section" id="sec-raw-data">
     <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
       <div class="section-heading" style="margin:0;">Raw Data Table</div>
-      <button class="btn-secondary" onclick="exportCSV()">Export CSV</button>
+      <button style="padding:8px 16px;background:transparent;color:var(--text2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;cursor:pointer;" onclick="exportCSV()">Export CSV</button>
     </div>
-    <div class="chart-card" style="padding:0;">
+    <div style="background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); overflow: hidden;">
       <div class="table-wrap">
         <table id="raw-table">
           <thead></thead>
@@ -443,6 +369,96 @@
 </div>
 
 <script>
+// ============================================
+// USER AUTHENTICATION SYSTEM
+// ============================================
+let currentUser = null;
+
+// Sample users database (in production, this would be server-side)
+const users = {
+  'admin@mpfbf.com': { password: 'admin123', name: 'Admin User' },
+  'manager@mpfbf.com': { password: 'manager123', name: 'Manager' },
+  'user@mpfbf.com': { password: 'user123', name: 'User' }
+};
+
+function handleLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errorEl = document.getElementById('login-error');
+  
+  errorEl.style.display = 'none';
+  
+  if(!email || !password) {
+    showLoginError('Please enter email and password');
+    return;
+  }
+  
+  if(!users[email]) {
+    showLoginError('Invalid email or password');
+    return;
+  }
+  
+  if(users[email].password !== password) {
+    showLoginError('Invalid email or password');
+    return;
+  }
+  
+  // Login successful
+  currentUser = {
+    email: email,
+    name: users[email].name,
+    loginTime: new Date()
+  };
+  
+  // Save to session storage
+  sessionStorage.setItem('mpfbf_current_user', JSON.stringify(currentUser));
+  
+  // Show dashboard
+  showDashboard();
+}
+
+function showLoginError(message) {
+  const errorEl = document.getElementById('login-error');
+  errorEl.textContent = '❌ ' + message;
+  errorEl.style.display = 'block';
+}
+
+function handleLogout() {
+  if(confirm('Are you sure you want to logout?')) {
+    currentUser = null;
+    sessionStorage.removeItem('mpfbf_current_user');
+    document.getElementById('app-main').style.display = 'none';
+    document.getElementById('login-overlay').style.display = 'flex';
+    document.getElementById('login-email').value = '';
+    document.getElementById('login-password').value = '';
+  }
+}
+
+function showDashboard() {
+  document.getElementById('login-overlay').style.display = 'none';
+  document.getElementById('app-main').style.display = 'flex';
+  document.getElementById('user-display-name').textContent = currentUser.name;
+  document.getElementById('user-display-email').textContent = currentUser.email;
+  
+  // Initialize dashboard
+  initDashboard();
+}
+
+function checkAuthStatus() {
+  const saved = sessionStorage.getItem('mpfbf_current_user');
+  if(saved) {
+    try {
+      currentUser = JSON.parse(saved);
+      showDashboard();
+    } catch(e) {
+      // Session invalid
+    }
+  }
+}
+
+// ============================================
+// DASHBOARD DATA & FUNCTIONALITY
+// ============================================
 const METRICS = [
   'boxes_in','tons_in','achieve','late_veh',
   'veh_report','veh_unload','veh_disp','veh_disp5',
@@ -451,6 +467,7 @@ const METRICS = [
   'ob24d','ob24b','ob48b','breach24',
   'breach48','weight'
 ];
+
 const METRIC_LABELS = {
   boxes_in:'Boxes Received', tons_in:'Tons Inbound', achieve:'Achievement %',
   late_veh:'Late Vehicles', veh_report:'Vehicles Reported', veh_unload:'Unloaded >4h',
@@ -463,8 +480,6 @@ const METRIC_LABELS = {
 
 let periodFilter = 'all';
 let charts = {};
-
-// Seed with original data from file
 let DATA = [
   {date:'2026-06-01',boxes_in:7174,tons_in:63.2,achieve:1.05,late_veh:5,veh_report:33,veh_unload:17,veh_disp:10,veh_disp5:6,xdock:2147,put_done:2729,put_pend:2298,boxes_out:5225,pend:6426,nzl3:10,nzl7:0,short:2,ob24d:7,ob24b:29,ob48b:6,breach24:2,breach48:0,weight:1},
   {date:'2026-06-02',boxes_in:9852,tons_in:98.7,achieve:1.44,late_veh:1,veh_report:37,veh_unload:19,veh_disp:10,veh_disp5:1,xdock:2943,put_done:3127,put_pend:3782,boxes_out:8410,pend:7429,nzl3:103,nzl7:10,short:0,ob24d:11,ob24b:3,ob48b:28,breach24:5,breach48:2,weight:1},
@@ -478,19 +493,15 @@ let DATA = [
   {date:'2026-06-10',boxes_in:8309,tons_in:94.0,achieve:1.04,late_veh:1,veh_report:35,veh_unload:13,veh_disp:10,veh_disp5:3,xdock:1413,put_done:946,put_pend:5950,boxes_out:7041,pend:7886,nzl3:92,nzl7:0,short:0,ob24d:9,ob24b:2,ob48b:4,breach24:0,breach48:3,weight:1}
 ];
 
-// ============================================
-// PERSISTENT STORAGE SYSTEM (IndexedDB + localStorage)
-// ============================================
 let db = null;
 let storageReady = false;
 
 async function initStorage() {
   try {
-    // Try IndexedDB (more reliable for large data)
     const request = indexedDB.open('MPFBFDashboard', 1);
     
     request.onerror = () => {
-      console.log('IndexedDB failed, using localStorage fallback');
+      console.log('IndexedDB failed, using localStorage');
       initStorageFallback();
     };
     
@@ -498,7 +509,6 @@ async function initStorage() {
       db = request.result;
       storageReady = true;
       loadDataFromStorage();
-      updateStorageIndicator();
     };
     
     request.onupgradeneeded = (e) => {
@@ -508,65 +518,18 @@ async function initStorage() {
       }
     };
   } catch(e) {
-    console.log('IndexedDB not available, using localStorage');
     initStorageFallback();
   }
 }
 
 function initStorageFallback() {
-  // Use localStorage as fallback
   storageReady = true;
   loadDataFromStorage();
-  updateStorageIndicator();
-}
-
-async function saveDataToStorage() {
-  try {
-    if(db && storageReady) {
-      // Save to IndexedDB
-      const transaction = db.transaction(['reports'], 'readwrite');
-      const store = transaction.objectStore('reports');
-      
-      DATA.forEach(record => {
-        store.put(record);
-      });
-      
-      transaction.oncomplete = () => {
-        console.log('Data saved to IndexedDB');
-        updateStorageIndicator();
-      };
-      
-      transaction.onerror = () => {
-        console.log('IndexedDB save failed, using localStorage fallback');
-        saveToLocalStorage();
-      };
-    } else {
-      saveToLocalStorage();
-    }
-  } catch(e) {
-    saveToLocalStorage();
-  }
-}
-
-function saveToLocalStorage() {
-  try {
-    const compressed = JSON.stringify(DATA);
-    if(compressed.length < 5242880) { // 5MB limit
-      localStorage.setItem('mpfbf_dashboard_data', compressed);
-      console.log('Data saved to localStorage');
-      updateStorageIndicator();
-    } else {
-      console.warn('Data too large for localStorage');
-    }
-  } catch(e) {
-    console.error('Storage failed:', e);
-  }
 }
 
 async function loadDataFromStorage() {
   try {
     if(db && storageReady) {
-      // Load from IndexedDB
       const transaction = db.transaction(['reports'], 'readonly');
       const store = transaction.objectStore('reports');
       const request = store.getAll();
@@ -588,10 +551,11 @@ async function loadDataFromStorage() {
 
 function loadFromLocalStorage() {
   try {
-    const saved = localStorage.getItem('mpfbf_dashboard_data');
+    const userKey = 'mpfbf_dashboard_data_' + currentUser.email;
+    const saved = localStorage.getItem(userKey);
     if(saved) {
       DATA = JSON.parse(saved);
-      console.log('Data loaded from localStorage:', DATA.length, 'records');
+      console.log('Data loaded from localStorage for user:', currentUser.email, DATA.length, 'records');
       rebuildActive();
     }
   } catch(e) {
@@ -599,69 +563,47 @@ function loadFromLocalStorage() {
   }
 }
 
+async function saveDataToStorage() {
+  try {
+    if(db && storageReady) {
+      const transaction = db.transaction(['reports'], 'readwrite');
+      const store = transaction.objectStore('reports');
+      
+      DATA.forEach(record => {
+        store.put(record);
+      });
+      
+      transaction.oncomplete = () => {
+        console.log('Data saved to IndexedDB');
+      };
+    } else {
+      saveToLocalStorage();
+    }
+  } catch(e) {
+    saveToLocalStorage();
+  }
+}
+
+function saveToLocalStorage() {
+  try {
+    const userKey = 'mpfbf_dashboard_data_' + currentUser.email;
+    const compressed = JSON.stringify(DATA);
+    if(compressed.length < 5242880) {
+      localStorage.setItem(userKey, compressed);
+      console.log('Data saved to localStorage for user:', currentUser.email);
+    }
+  } catch(e) {
+    console.error('Storage failed:', e);
+  }
+}
+
 function updateStorageIndicator() {
   const indicator = document.getElementById('storage-indicator');
-  const info = document.getElementById('storage-info');
-  
   if(!indicator) return;
   
   const storageType = db ? '📦 IndexedDB' : '💾 localStorage';
   const recordCount = DATA.length;
-  
-  indicator.textContent = `${storageType} • ${recordCount} records`;
-  
-  if(info) {
-    info.innerHTML = `<strong>Active Storage:</strong> ${db ? 'IndexedDB (Recommended)' : 'localStorage (Limited)'}<br>
-    <strong>Records:</strong> ${recordCount} entries<br>
-    <strong>Last Save:</strong> ${new Date().toLocaleTimeString()}`;
-  }
-}
-
-function clearAllData() {
-  if(confirm('⚠️ Are you sure? This will delete all dashboard data!\n\nClick OK to confirm deletion.')) {
-    DATA = [];
-    
-    try {
-      if(db && storageReady) {
-        const transaction = db.transaction(['reports'], 'readwrite');
-        const store = transaction.objectStore('reports');
-        store.clear();
-      }
-    } catch(e) {}
-    
-    localStorage.removeItem('mpfbf_dashboard_data');
-    updateStorageIndicator();
-    rebuildActive();
-    alert('✓ All data cleared');
-  }
-}
-
-// Real-time Configuration
-let realtimeConfig = {
-  enabled: true,
-  interval: 15000,
-  source: 'polling',
-  updateInterval: null,
-  lastUpdateTime: null
-};
-
-// Load configuration from localStorage
-function loadRealtimeConfig() {
-  const saved = localStorage.getItem('mpfbfRealtimeConfig');
-  if(saved) {
-    try {
-      realtimeConfig = { ...realtimeConfig, ...JSON.parse(saved) };
-    } catch(e) {}
-  }
-}
-
-// Save configuration to localStorage
-function saveRealtimeConfig() {
-  localStorage.setItem('mpfbfRealtimeConfig', JSON.stringify({
-    enabled: realtimeConfig.enabled,
-    interval: realtimeConfig.interval,
-    source: realtimeConfig.source
-  }));
+  indicator.textContent = `${storageType} • ${recordCount} records • User: ${currentUser.email}`;
 }
 
 function updateRealtimeStatus(status, type = 'online') {
@@ -670,158 +612,14 @@ function updateRealtimeStatus(status, type = 'online') {
   const statusText = document.getElementById('status-text');
   const headerText = document.getElementById('header-status-text');
   
-  if(!statusDot) return;
-  
-  statusDot.className = 'status-dot ' + (type === 'offline' ? 'offline' : type === 'loading' ? 'loading' : '');
-  headerDot.className = 'status-dot ' + (type === 'offline' ? 'offline' : type === 'loading' ? 'loading' : '');
-  
-  statusText.textContent = status;
-  headerText.textContent = status;
-}
-
-function toggleRealtimeSettings() {
-  const modal = document.getElementById('settings-modal');
-  modal.style.display = modal.style.display === 'none' ? 'flex' : 'none';
-  if(modal.style.display === 'flex') {
-    document.getElementById('auto-refresh-toggle').checked = realtimeConfig.enabled;
-    document.getElementById('refresh-interval').value = realtimeConfig.interval / 1000;
-    document.getElementById('update-source').value = realtimeConfig.source;
-    updateStorageIndicator();
+  if(statusDot) {
+    statusDot.className = 'status-dot ' + (type === 'offline' ? 'offline' : type === 'loading' ? 'loading' : '');
+    statusText.textContent = status;
   }
-}
-
-function closeRealtimeSettings() {
-  document.getElementById('settings-modal').style.display = 'none';
-}
-
-function updateRealtimeSettings() {
-  // Live preview updates
-}
-
-function saveRealtimeSettings() {
-  realtimeConfig.enabled = document.getElementById('auto-refresh-toggle').checked;
-  realtimeConfig.interval = parseInt(document.getElementById('refresh-interval').value) * 1000;
-  realtimeConfig.source = document.getElementById('update-source').value;
-  
-  saveRealtimeConfig();
-  
-  if(realtimeConfig.updateInterval) clearInterval(realtimeConfig.updateInterval);
-  
-  if(realtimeConfig.enabled) {
-    startRealTimeUpdates();
+  if(headerDot) {
+    headerDot.className = 'status-dot ' + (type === 'offline' ? 'offline' : type === 'loading' ? 'loading' : '');
+    headerText.textContent = status;
   }
-  
-  updateRealtimeStatus(realtimeConfig.enabled ? 'Auto' : 'Manual', 'online');
-  closeRealtimeSettings();
-}
-
-// Simulate real-time data updates
-function simulateDataUpdate() {
-  const lastDay = DATA[DATA.length - 1];
-  const updatedDay = { ...lastDay };
-  
-  // Simulate small variations in metrics
-  const variation = (base, percent = 0.05) => {
-    const change = base * percent * (Math.random() - 0.5) * 2;
-    return Math.max(0, Math.round(base + change));
-  };
-  
-  updatedDay.boxes_in = variation(lastDay.boxes_in, 0.03);
-  updatedDay.boxes_out = variation(lastDay.boxes_out, 0.03);
-  updatedDay.pend = variation(lastDay.pend, 0.05);
-  updatedDay.nzl3 = Math.max(0, lastDay.nzl3 + Math.floor((Math.random() - 0.5) * 4));
-  updatedDay.ob48b = Math.max(0, lastDay.ob48b + Math.floor((Math.random() - 0.5) * 3));
-  updatedDay.veh_unload = variation(lastDay.veh_unload, 0.1);
-  updatedDay.achieve = Math.max(0.9, Math.min(1.5, lastDay.achieve + (Math.random() - 0.5) * 0.05));
-  
-  DATA[DATA.length - 1] = updatedDay;
-  realtimeConfig.lastUpdateTime = new Date();
-  
-  // Save to persistent storage
-  saveDataToStorage();
-  
-  return updatedDay;
-}
-
-// Start real-time polling
-function startRealTimeUpdates() {
-  if(realtimeConfig.updateInterval) clearInterval(realtimeConfig.updateInterval);
-  
-  updateRealtimeStatus('Connecting...', 'loading');
-  
-  if(realtimeConfig.source === 'websocket' || realtimeConfig.source === 'hybrid') {
-    attemptWebSocketConnection();
-  }
-  
-  if(realtimeConfig.source === 'polling' || realtimeConfig.source === 'hybrid') {
-    realtimeConfig.updateInterval = setInterval(() => {
-      if(realtimeConfig.enabled) {
-        updateRealtimeStatus('Updating...', 'loading');
-        
-        setTimeout(() => {
-          simulateDataUpdate();
-          rebuildActive();
-          updateRealtimeStatus('Updated ' + new Date().toLocaleTimeString(), 'online');
-        }, 300);
-      }
-    }, realtimeConfig.interval);
-  }
-  
-  setTimeout(() => {
-    if(realtimeConfig.enabled) {
-      updateRealtimeStatus('Auto (' + (realtimeConfig.interval / 1000) + 's)', 'online');
-    }
-  }, 1000);
-}
-
-// WebSocket connection attempt
-let wsConnection = null;
-function attemptWebSocketConnection() {
-  try {
-    const wsURL = 'ws://localhost:8080/mpfbf-updates';
-    
-    wsConnection = new WebSocket(wsURL);
-    
-    wsConnection.onopen = () => {
-      updateRealtimeStatus('WebSocket Active', 'online');
-    };
-    
-    wsConnection.onmessage = (event) => {
-      try {
-        const newData = JSON.parse(event.data);
-        DATA[DATA.length - 1] = { ...DATA[DATA.length - 1], ...newData };
-        saveDataToStorage();
-        rebuildActive();
-        updateRealtimeStatus('Live Update', 'online');
-      } catch(e) {
-        console.error('Error parsing WebSocket data:', e);
-      }
-    };
-    
-    wsConnection.onerror = () => {
-      updateRealtimeStatus('WebSocket Error', 'offline');
-    };
-    
-    wsConnection.onclose = () => {
-      updateRealtimeStatus('WebSocket Closed', 'offline');
-      wsConnection = null;
-    };
-  } catch(e) {
-    console.log('WebSocket not available, using polling');
-    updateRealtimeStatus('Polling', 'online');
-  }
-}
-
-function stopRealTimeUpdates() {
-  if(realtimeConfig.updateInterval) {
-    clearInterval(realtimeConfig.updateInterval);
-    realtimeConfig.updateInterval = null;
-  }
-  if(wsConnection) {
-    wsConnection.close();
-    wsConnection = null;
-  }
-  updateRealtimeStatus('Manual', 'offline');
 }
 
 function getFilteredData() {
@@ -835,7 +633,6 @@ function fmt(n, dec=0) { return n==null||isNaN(n)?'—':Number(n).toLocaleString
 function fmtDate(d) { const dt=new Date(d+'T00:00:00'); return dt.toLocaleDateString('en-IN',{day:'2-digit',month:'short'}); }
 function avg(arr) { const v=arr.filter(x=>x!=null&&!isNaN(x)); return v.length?v.reduce((a,b)=>a+b,0)/v.length:0; }
 function sum(arr) { return arr.filter(x=>x!=null&&!isNaN(x)).reduce((a,b)=>a+b,0); }
-function last(arr, key) { const d=getFilteredData(); return d.length?d[d.length-1][key]:null; }
 
 const PALETTE = {
   blue:'#378ADD', blue2:'#185FA5', green:'#639922', green2:'#3B6D11',
@@ -852,8 +649,9 @@ function destroyChart(id) { if(charts[id]){ charts[id].destroy(); delete charts[
 
 function buildDashboard() {
   const d = getFilteredData();
+  if(d.length === 0) return;
+  
   const labels = d.map(x=>fmtDate(x.date));
-
   const latestD = d[d.length-1]||{};
   const kpis = [
     {label:'Boxes Received (Latest)', value:fmt(latestD.boxes_in), unit:'boxes', sub: `Avg: ${fmt(avg(d.map(x=>x.boxes_in)))}`, color:'blue'},
@@ -863,7 +661,6 @@ function buildDashboard() {
     {label:'Vehicles Reported', value:fmt(latestD.veh_report), unit:'', sub:`Unloaded >4h: ${fmt(latestD.veh_unload)}`, color:'purple'},
     {label:'NZL >3 Days', value:fmt(latestD.nzl3), unit:'', sub:'Target: 0', color:latestD.nzl3>0?'red':'green'},
   ];
-  const colorMap = {blue:'var(--blue-bg)',teal:'var(--teal-bg)',green:'var(--green-bg)',red:'var(--red-bg)',amber:'var(--amber-bg)',purple:'var(--purple-bg)'};
   const textMap = {blue:'var(--blue)',teal:'var(--teal)',green:'var(--green)',red:'var(--red)',amber:'var(--amber)',purple:'var(--purple)'};
   document.getElementById('kpi-grid').innerHTML = kpis.map(k=>`
     <div class="kpi-card" style="border-left:3px solid ${textMap[k.color]};">
@@ -882,31 +679,12 @@ function buildDashboard() {
     ]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{font:{size:11}}}}}
   });
-
-  destroyChart('chartAchievement');
-  charts['chartAchievement'] = new Chart(document.getElementById('chartAchievement'),{
-    type:'line',
-    data:{labels, datasets:[
-      {label:'Achievement %',data:d.map(x=>+(x.achieve*100).toFixed(1)),borderColor:PALETTE.green,backgroundColor:PALETTE.green+'22',borderWidth:2,pointRadius:4,fill:true,tension:0.3},
-      {label:'Target 100%',data:d.map(()=>100),borderColor:'#E24B4A',borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{min:90,ticks:{font:{size:11},callback:v=>v+'%'}}}}
-  });
-
-  destroyChart('chartVehicles');
-  mkLegend('legend-veh',[{color:PALETTE.blue2,label:'Vehicles Reported'},{color:PALETTE.red,label:'Unloaded >4h'}]);
-  charts['chartVehicles'] = new Chart(document.getElementById('chartVehicles'),{
-    type:'bar',
-    data:{labels, datasets:[
-      {label:'Reported',data:d.map(x=>x.veh_report),backgroundColor:PALETTE.blue2+'99',borderColor:PALETTE.blue2,borderWidth:1.5,borderRadius:4},
-      {label:'Unloaded >4h',data:d.map(x=>x.veh_unload),backgroundColor:PALETTE.red+'99',borderColor:PALETTE.red,borderWidth:1.5,borderRadius:4}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{font:{size:11}}}}}
-  });
 }
 
 function buildOperations() {
   const d = getFilteredData();
+  if(d.length === 0) return;
+  
   const labels = d.map(x=>fmtDate(x.date));
   const latestD = d[d.length-1]||{};
 
@@ -918,31 +696,12 @@ function buildOperations() {
     {label:'OB Connection >24h Boxes',value:fmt(latestD.ob24b),sub:`10d sum: ${fmt(sum(d.map(x=>x.ob24b)))}`,color:'red'},
     {label:'OB Connection >48h Boxes',value:fmt(latestD.ob48b),sub:`10d sum: ${fmt(sum(d.map(x=>x.ob48b)))}`,color:'red'},
   ].map(k=>`<div class="kpi-card" style="border-left:3px solid var(--${k.color})"><div class="kpi-label">${k.label}</div><div class="kpi-value" style="color:var(--${k.color})">${k.value}</div><div class="kpi-trend trend-neutral">${k.sub}</div></div>`).join('');
-
-  destroyChart('chartWarehouse');
-  mkLegend('legend-wh',[{color:PALETTE.blue,label:'Cross-Dock'},{color:PALETTE.green,label:'Putting Done'},{color:PALETTE.amber,label:'Putting Pending'}]);
-  charts['chartWarehouse'] = new Chart(document.getElementById('chartWarehouse'),{type:'bar',data:{labels,datasets:[
-    {label:'Cross-Dock',data:d.map(x=>x.xdock),backgroundColor:PALETTE.blue+'99',borderColor:PALETTE.blue,borderWidth:1.5,borderRadius:3},
-    {label:'Putting Done',data:d.map(x=>x.put_done),backgroundColor:PALETTE.green+'99',borderColor:PALETTE.green,borderWidth:1.5,borderRadius:3},
-    {label:'Putting Pending',data:d.map(x=>x.put_pend),backgroundColor:PALETTE.amber+'99',borderColor:PALETTE.amber,borderWidth:1.5,borderRadius:3}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{font:{size:11}}}}}});
-
-  destroyChart('chartOBDelay');
-  mkLegend('legend-ob',[{color:PALETTE.amber,label:'OB >24h Boxes'},{color:PALETTE.red,label:'OB >48h Boxes'}]);
-  charts['chartOBDelay'] = new Chart(document.getElementById('chartOBDelay'),{type:'bar',data:{labels,datasets:[
-    {label:'OB >24h',data:d.map(x=>x.ob24b),backgroundColor:PALETTE.amber+'99',borderColor:PALETTE.amber,borderWidth:1.5,borderRadius:3},
-    {label:'OB >48h',data:d.map(x=>x.ob48b),backgroundColor:PALETTE.red+'99',borderColor:PALETTE.red,borderWidth:1.5,borderRadius:3}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{font:{size:11}}}}}});
-
-  destroyChart('chartDispatch');
-  charts['chartDispatch'] = new Chart(document.getElementById('chartDispatch'),{type:'bar',data:{labels,datasets:[
-    {label:'Dispatched >5h',data:d.map(x=>x.veh_disp5),backgroundColor:PALETTE.coral+'cc',borderColor:PALETTE.coral,borderWidth:1.5,borderRadius:4}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{font:{size:11},stepSize:1}}}}});
 }
 
 function buildPendency() {
   const d = getFilteredData();
-  const labels = d.map(x=>fmtDate(x.date));
+  if(d.length === 0) return;
+
   const latestD = d[d.length-1]||{};
 
   document.getElementById('pend-kpis').innerHTML = [
@@ -953,27 +712,12 @@ function buildPendency() {
     {label:'Docket Breach >48h',value:fmt(latestD.breach48),sub:`10d sum: ${sum(d.map(x=>x.breach48))}`,color:'red'},
     {label:'Short Connections',value:fmt(sum(d.map(x=>x.short))),sub:'Total for period',color:'blue'},
   ].map(k=>`<div class="kpi-card" style="border-left:3px solid var(--${k.color})"><div class="kpi-label">${k.label}</div><div class="kpi-value" style="color:var(--${k.color})">${k.value}</div><div class="kpi-trend trend-neutral">${k.sub}</div></div>`).join('');
-
-  destroyChart('chartPendency');
-  charts['chartPendency'] = new Chart(document.getElementById('chartPendency'),{type:'line',data:{labels,datasets:[
-    {label:'Pendency',data:d.map(x=>x.pend),borderColor:PALETTE.amber,backgroundColor:PALETTE.amber+'22',borderWidth:2,fill:true,tension:0.3,pointRadius:4}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{font:{size:11}}}}}});
-
-  destroyChart('chartNZL3');
-  charts['chartNZL3'] = new Chart(document.getElementById('chartNZL3'),{type:'bar',data:{labels,datasets:[
-    {label:'NZL >3 Days',data:d.map(x=>x.nzl3),backgroundColor:d.map(x=>x.nzl3>10?PALETTE.red+'cc':PALETTE.amber+'99'),borderWidth:1.5,borderRadius:4}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{font:{size:11}},beginAtZero:true}}}});
-
-  destroyChart('chartDockets');
-  mkLegend('legend-docket',[{color:PALETTE.amber,label:'Breach 24-48h'},{color:PALETTE.red,label:'Breach >48h'}]);
-  charts['chartDockets'] = new Chart(document.getElementById('chartDockets'),{type:'bar',data:{labels,datasets:[
-    {label:'24-48h',data:d.map(x=>x.breach24),backgroundColor:PALETTE.amber+'99',borderColor:PALETTE.amber,borderWidth:1.5,borderRadius:3},
-    {label:'>48h',data:d.map(x=>x.breach48),backgroundColor:PALETTE.red+'99',borderColor:PALETTE.red,borderWidth:1.5,borderRadius:3}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{font:{size:11}}}}}});
 }
 
 function buildAlerts() {
   const d = getFilteredData();
+  if(d.length === 0) return;
+  
   const latestD = d[d.length-1]||{};
   const prevD = d.length>1?d[d.length-2]:{};
 
@@ -989,32 +733,16 @@ function buildAlerts() {
   ];
   document.getElementById('alerts-grid').innerHTML = alerts.map(a=>`
     <div class="alert-card ${a.type}">
-      <div class="alert-title">${a.label}</div>
+      <div style="font-size: 12px; font-weight: 600; margin-bottom: 4px;">${a.label}</div>
       <div class="alert-value">${a.value}</div>
       <div class="alert-desc">${a.desc}</div>
     </div>`).join('');
-
-  const heatMetrics = [{k:'pend',l:'Pendency'},{k:'nzl3',l:'NZL>3d'},{k:'ob48b',l:'OB>48h'},{k:'breach48',l:'Breach>48h'},{k:'put_pend',l:'Pend.Boxes'},{k:'veh_disp5',l:'Disp>5h'}];
-  const maxVals = heatMetrics.map(m=>Math.max(...d.map(x=>+x[m.k]||0)));
-  let html = `<table style="border-collapse:collapse;font-size:11px;width:100%">
-    <tr><th style="padding:6px 10px;text-align:left;color:var(--text3);font-weight:600;background:var(--surface2);border-bottom:0.5px solid var(--border);">Metric</th>
-    ${d.map(x=>`<th style="padding:6px 8px;text-align:center;color:var(--text3);font-weight:500;background:var(--surface2);border-bottom:0.5px solid var(--border);">${fmtDate(x.date)}</th>`).join('')}</tr>`;
-  heatMetrics.forEach((m,mi)=>{
-    html += `<tr><td style="padding:7px 10px;color:var(--text2);font-weight:500;background:var(--surface);border-bottom:0.5px solid var(--border);">${m.l}</td>`;
-    d.forEach(x=>{
-      const v = +x[m.k]||0; const ratio = maxVals[mi]>0?v/maxVals[mi]:0;
-      const r = Math.round(226*ratio+40*(1-ratio)), g = Math.round(75*ratio+243*(1-ratio)), b = Math.round(74*ratio+222*(1-ratio));
-      const bg = `rgba(${r},${g},${b},0.25)`;
-      html += `<td style="padding:7px 8px;text-align:center;background:${bg};border-bottom:0.5px solid var(--border);color:var(--text);">${fmt(v)}</td>`;
-    });
-    html += '</tr>';
-  });
-  html += '</table>';
-  document.getElementById('heatmap-wrap').innerHTML = html;
 }
 
 function buildRawTable() {
   const d = getFilteredData();
+  if(d.length === 0) return;
+  
   const cols = ['date','boxes_in','boxes_out','achieve','veh_report','veh_unload','veh_disp5','xdock','put_done','put_pend','pend','nzl3','ob24b','ob48b','breach24','breach48'];
   const heads = {date:'Date',boxes_in:'Boxes In',boxes_out:'Boxes Out',achieve:'Achiev.',veh_report:'Veh. Rpt',veh_unload:'Unld >4h',veh_disp5:'Disp >5h',xdock:'X-Dock',put_done:'Put Done',put_pend:'Put Pend',pend:'Pendency',nzl3:'NZL>3d',ob24b:'OB>24h',ob48b:'OB>48h',breach24:'Br 24-48',breach48:'Br >48h'};
   const thead = `<tr>${cols.map(c=>`<th>${heads[c]}</th>`).join('')}</tr>`;
@@ -1059,7 +787,6 @@ function saveEntry() {
   const idx = DATA.findIndex(x=>x.date===d);
   if(idx>=0) DATA[idx]=row; else DATA.push(row);
   
-  // Save to persistent storage
   saveDataToStorage();
   
   document.getElementById('last-updated').textContent = fmtDate(d);
@@ -1080,32 +807,35 @@ function exportCSV() {
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='MPFBF_Data.csv'; a.click();
 }
 
-// Init
-document.addEventListener('DOMContentLoaded', async ()=>{
-  // Initialize storage first
+// Initialize dashboard
+async function initDashboard() {
   await initStorage();
   
-  loadRealtimeConfig();
   buildDashboard();
-  document.getElementById('last-updated').textContent = fmtDate(DATA[DATA.length-1].date);
+  if(DATA.length > 0) {
+    document.getElementById('last-updated').textContent = fmtDate(DATA[DATA.length-1].date);
+  }
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('f_date').value = today;
   
-  if(realtimeConfig.enabled) {
-    startRealTimeUpdates();
-  } else {
-    updateRealtimeStatus('Manual', 'offline');
-  }
+  updateRealtimeStatus('Ready', 'online');
+  updateStorageIndicator();
+}
+
+// Document ready
+document.addEventListener('DOMContentLoaded', () => {
+  // Add demo credentials hint
+  document.getElementById('login-email').placeholder = 'e.g. admin@mpfbf.com';
+  document.getElementById('login-password').placeholder = 'admin123';
   
-  document.getElementById('settings-modal').addEventListener('click', (e) => {
-    if(e.target.id === 'settings-modal') closeRealtimeSettings();
-  });
+  checkAuthStatus();
 });
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', () => {
-  stopRealTimeUpdates();
-  saveDataToStorage();
+  if(currentUser && DATA.length > 0) {
+    saveDataToStorage();
+  }
 });
 </script>
 </body>
